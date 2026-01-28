@@ -1,12 +1,15 @@
 {
   "name": "planning-system",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "version": "0.0.0",
   "description": "planning system with analytics",
   "repository": "https://github.com/NGdre/planning-system.git",
   "license": "ISC",
   "author": "",
   "type": "module",
-  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
