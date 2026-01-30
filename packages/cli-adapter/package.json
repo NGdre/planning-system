@@ -1,7 +1,7 @@
 {
-  "name": "@planning-system/core",
+  "name": "@planning-system/cli-adapter",
   "version": "0.0.0",
-  "description": "the core of planning system",
+  "description": "",
   "license": "ISC",
   "author": "",
   "type": "module",
@@ -12,5 +12,8 @@
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "dependencies": {
+    "@planning-system/core": "0.0.0"
+  },
   "devDependencies": {}
 }

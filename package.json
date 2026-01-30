@@ -12,7 +12,9 @@
   "type": "module",
   "scripts": {
     "test": "vitest",
-    "build": "tsc"
+    "build": "npm run build -ws",
+    "dev": "npm run dev -ws",
+    "clean": "rm -rf packages/*/dist"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
