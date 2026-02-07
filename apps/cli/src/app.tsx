@@ -1,31 +1,17 @@
-import { useState } from "react";
-import { Text, Box, useInput, Spacer } from "ink";
+import { Router, Route } from './components/router/Router.js'
+import { NewMainMenu } from './components/menu/MainMenu.js'
+import NewTaskMenu from './components/menu/NewTaskMenu.js'
+import { TaskStore } from './components/task/TaskStore.js'
+import { TaskList } from './components/task/TaskList.js'
 
-const App = () => {
-  const [count, setCount] = useState(0);
-
-  useInput((input, key) => {
-    if (input === "q") {
-      process.exit(0);
-    }
-
-    if (key.upArrow) {
-      setCount((c) => c + 1);
-    }
-
-    if (key.downArrow) {
-      setCount((c) => Math.max(0, c - 1));
-    }
-  });
-
+export default function App() {
   return (
-    <Box flexDirection="column">
-      <Text>Press arrows to change counter, "q" to quit</Text>
-      <Text color="greenBright">Count: {count}</Text>
-      <Spacer />
-      <Text color="gray">Use ↑ ↓ keys</Text>
-    </Box>
-  );
-};
-
-export default App;
+    <TaskStore>
+      <Router initialRoute="main">
+        <Route route="main" component={<NewMainMenu />} />
+        <Route route="new-task" component={<NewTaskMenu />} />
+        <Route route="all-tasks" component={<TaskList />} />
+      </Router>
+    </TaskStore>
+  )
+}
