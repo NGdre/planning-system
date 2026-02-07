@@ -1,4 +1,4 @@
-import { TaskDTO } from '../entities/task.entity'
+import { TaskDTO } from '../entities/task.entity.js'
 
 export interface TaskRepository {
   save(task: TaskDTO): Promise<void>

@@ -1,5 +1,5 @@
-import { TaskDTO, TaskEntity } from '../entities/task.entity'
-import { IdGenerator, TaskRepository } from '../ports/repository.port'
+import { TaskDTO, TaskEntity } from '../entities/task.entity.js'
+import { IdGenerator, TaskRepository } from '../ports/repository.port.js'
 
 export interface CreateTaskInput {
   title: string

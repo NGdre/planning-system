@@ -1,6 +1,6 @@
-import { IdGenerator } from '../ports/repository.port'
-import { TimeBlock, TimeBlockVO } from '../value-objects/time-block.vo'
-import { Entity } from './Entity'
+import { IdGenerator } from '../ports/repository.port.js'
+import { TimeBlock, TimeBlockVO } from '../value-objects/time-block.vo.js'
+import { Entity } from './Entity.js'
 
 type TaskStatus = 'draft' | 'scheduled' | 'in_progress' | 'canceled'
 
