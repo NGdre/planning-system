@@ -12,7 +12,9 @@
   "type": "module",
   "scripts": {
     "test": "vitest",
-    "build": "npm run build -ws",
+    "build": "npm run build:core && npm run build:cli-adapter",
+    "build:core": "npm run build -w @planning-system/core",
+    "build:cli-adapter": "npm run build -w @planning-system/cli-adapter",
     "dev": "npm run dev -ws",
     "clean": "rm -rf packages/*/dist"
   },
