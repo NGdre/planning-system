@@ -2,7 +2,8 @@
   "name": "planning-system",
   "private": true,
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "version": "0.0.0",
   "description": "planning system with analytics",
