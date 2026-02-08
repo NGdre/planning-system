@@ -3,7 +3,8 @@ import SelectInput from 'ink-select-input'
 import { Text } from 'ink'
 import { TextInputContainer } from '../TextInputContainer.js'
 import { useRouter } from '../router/Router.js'
-import { useTaskStore } from '../task/TaskStore.js'
+import { CreateTaskInput } from '@planning-system/core'
+import { cliAdapter } from '../../cli.js'
 
 const newTaskMenu = [
   {
@@ -24,16 +25,8 @@ const newTaskMenu = [
   },
 ]
 
-export type TaskFields = {
-  title: string
-  description?: string
-  deadline?: string
-  scheduledAt?: string
-}
-
 export default function NewTaskMenu() {
-  const newTaskFields = useRef<TaskFields | null>(null)
-  const { setTasks } = useTaskStore()
+  const newTaskFields = useRef<CreateTaskInput | null>(null)
 
   const [menuItem, setMenuItem] = useState<{
     label: string
@@ -44,9 +37,11 @@ export default function NewTaskMenu() {
 
   const { goBack } = useRouter()
 
-  const handleSelect = (item: { label: string; value: string }) => {
+  const handleSelect = async (item: { label: string; value: string }) => {
     if (item.value === 'DONE') {
-      if (newTaskFields.current) setTasks((prev) => [...prev, newTaskFields.current!])
+      if (newTaskFields.current) {
+        await cliAdapter.createTask(newTaskFields.current)
+      }
 
       newTaskFields.current = null
       goBack()
