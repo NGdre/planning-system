@@ -13,11 +13,15 @@
   "type": "module",
   "scripts": {
     "test": "vitest",
-    "build": "npm run build:core && npm run build:cli-adapter",
+    "build": "npm run build:core && npm run build:cli-adapter && npm run build:cli-app",
     "build:core": "npm run build -w @planning-system/core",
     "build:cli-adapter": "npm run build -w @planning-system/cli-adapter",
+    "build:cli-app": "npm run build -w planning-system-cli",
     "dev": "npm run dev -ws",
-    "clean": "rm -rf packages/*/dist"
+    "clean": "rm -rf packages/*/dist",
+    "migrate:make": "knex migrate:make --knexfile ./packages/cli-adapter/knexfile.js",
+    "migrate:up": "knex migrate:latest --knexfile ./packages/cli-adapter/knexfile.js",
+    "migrate:down": "knex migrate:rollback --knexfile ./packages/cli-adapter/knexfile.js"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
