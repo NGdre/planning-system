@@ -2,7 +2,7 @@ import { IdGenerator } from '../ports/repository.port.js'
 import { TimeBlock, TimeBlockVO } from '../value-objects/time-block.vo.js'
 import { Entity } from './Entity.js'
 
-type TaskStatus = 'draft' | 'scheduled' | 'in_progress' | 'canceled'
+type TaskStatus = 'draft' | 'scheduled' | 'in_progress' | 'canceled' | 'completed'
 
 export interface BaseTask {
   title: string
@@ -12,8 +12,6 @@ export interface BaseTask {
 export interface ScheduledData {
   scheduledTimeBlock: TimeBlock
 }
-
-export type Task = BaseTask & ({ status: 'draft' } | ({ status: 'scheduled' } & ScheduledData))
 
 export type TaskDTO = {
   id: string
@@ -55,9 +53,41 @@ export class TaskEntity extends Entity implements BaseTask {
     return this._scheduledTimeBlock
   }
 
+  canSchedule() {
+    if (['draft', 'scheduled'].includes(this.status)) return true
+    return false
+  }
+
+  canStart() {
+    if (this.status === 'scheduled') return true
+    return false
+  }
+
+  canEdit() {
+    if (!['canceled', 'completed'].includes(this.status)) return true
+    return false
+  }
+
+  canComplete() {
+    if (!['scheduled', 'canceled', 'completed'].includes(this.status)) return true
+    return false
+  }
+
+  canDelete() {
+    if (this.status === 'draft') return true
+    return false
+  }
+
+  canCancel() {
+    if (['scheduled', 'in_progress'].includes(this.status)) return true
+    return false
+  }
+
   schedule(timeBlock: TimeBlock) {
-    this._scheduledTimeBlock = new TimeBlockVO(timeBlock.startTime, timeBlock.endTime)
-    this._status = 'scheduled'
+    if (this.canSchedule()) {
+      this._scheduledTimeBlock = new TimeBlockVO(timeBlock.startTime, timeBlock.endTime)
+      this._status = 'scheduled'
+    }
   }
 
   static create(idGenerator: IdGenerator, params: { title: string }) {
