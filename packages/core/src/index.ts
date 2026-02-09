@@ -1,5 +1,5 @@
 export * from './entities/task.entity.js'
-export * from './value-objects/time-block.vo.js'
+export * from './entities/time-block.entity.js'
 export * from './ports/repository.port.js'
 export * from './use-cases/task.use-case.js'
 export * from './services/user-actions.service.js'
