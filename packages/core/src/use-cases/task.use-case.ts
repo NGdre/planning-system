@@ -1,10 +1,13 @@
 import { TaskDTO, TaskEntity } from '../entities/task.entity.js'
 import { IdGenerator, TaskRepository } from '../ports/repository.port.js'
+import { TaskAction, UserActionsService } from '../services/user-actions.service.js'
 
 export interface CreateTaskInput {
   title: string
   description?: string
 }
+
+export type TaskDetails = TaskDTO & { taskActions: TaskAction[] }
 
 export class CreateTaskUseCase {
   constructor(
@@ -30,12 +33,18 @@ export class ListTasksUseCase {
 }
 
 export class GetSpecificTaskUseCase {
-  constructor(private readonly taskRepository: TaskRepository) {}
+  constructor(
+    private readonly taskRepository: TaskRepository,
+    private readonly userActionsService: UserActionsService
+  ) {}
 
-  async execute(id: string): Promise<TaskDTO> {
+  async execute(id: string): Promise<TaskDetails> {
     const task = await this.taskRepository.findById(id)
 
     if (!task) throw new Error('task is not found')
-    else return task
+
+    const taskActions = this.userActionsService.getTaskActions(task)
+
+    return Object.assign(task, { taskActions })
   }
 }
