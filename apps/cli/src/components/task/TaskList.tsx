@@ -1,12 +1,15 @@
+import { TaskDTO } from '@planning-system/core'
 import { useEffect, useState } from 'react'
-import { WithNavigationKeys } from '../router/Router.js'
+import { cliAdapter } from '../../cli.js'
+import { useRouter, WithNavigationKeys } from '../router/Router.js'
 import { VirtualList } from '../ui/VirtualList.js'
 import { TaskRenderer } from './TaskRenderer.js'
-import { TaskDTO } from '@planning-system/core'
-import { cliAdapter } from '../../cli.js'
+import { useTaskStore } from './TaskStore.js'
 
 export function TaskList() {
   const [tasks, setTasks] = useState<TaskDTO[]>([])
+  const { navigate } = useRouter()
+  const { setSelectedTaskId } = useTaskStore()
 
   useEffect(() => {
     const findAllTasks = async () => {
@@ -24,6 +27,10 @@ export function TaskList() {
           <TaskRenderer index={index} isSelected={isSelected} isVisible={isVisible} item={item} />
         )}
         additionalHints=" | b - Назад"
+        onSelect={(item) => {
+          setSelectedTaskId(item.id)
+          navigate('task-menu')
+        }}
       />
     </WithNavigationKeys>
   )
