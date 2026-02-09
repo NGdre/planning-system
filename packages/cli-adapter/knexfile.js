@@ -1,4 +1,5 @@
 import { DatabaseConfig } from './src/persistence/db.js'
+import knexStringcase from 'knex-stringcase'
 
 /**
  * @type { Object.<string, import("knex").Knex.Config> }
@@ -15,6 +16,7 @@ const config = {
       min: 1,
       max: 1,
     },
+    ...knexStringcase(),
   },
 }
 

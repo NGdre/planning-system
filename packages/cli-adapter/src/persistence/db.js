@@ -1,7 +1,8 @@
-import knex from 'knex'
-import path from 'path'
-import os from 'os'
 import fs from 'fs'
+import knex from 'knex'
+import knexStringcase from 'knex-stringcase'
+import os from 'os'
+import path from 'path'
 import { fileURLToPath } from 'url'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -26,6 +27,9 @@ export class DatabaseConfig {
     return path.join(__dirname, 'seeds')
   }
 
+  /**
+   * @returns {import('knex').Knex.Config}
+   */
   static getKnexConfig() {
     return {
       client: 'better-sqlite3',
@@ -39,6 +43,8 @@ export class DatabaseConfig {
       seeds: {
         directory: DatabaseConfig.getSeedsPath(),
       },
+
+      ...knexStringcase(),
     }
   }
 }
