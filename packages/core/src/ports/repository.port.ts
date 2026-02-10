@@ -12,6 +12,7 @@ export interface TimeBlockRepository {
   findAll(): Promise<TimeBlockDTO[]>
   findById(id: string): Promise<TimeBlockDTO | null>
   findByTaskId(taskId: string): Promise<TimeBlockDTO | null>
+  findAllWithin(firstDate: number, secondDate: number): Promise<TimeBlockDTO[]>
 }
 
 export interface Repository {

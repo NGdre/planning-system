@@ -31,9 +31,16 @@ describe('TimeBlockRepository', () => {
       status: 'draft',
     }
 
+    const task4: TaskDTO = {
+      id: 'taskId4',
+      title: 'new-task4',
+      status: 'draft',
+    }
+
     await taskRepository.save(task1)
     await taskRepository.save(task2)
     await taskRepository.save(task3)
+    await taskRepository.save(task4)
 
     timeBlockRepository = new KnexTimeBlockRepository(db)
   })
@@ -88,6 +95,56 @@ describe('TimeBlockRepository', () => {
     await timeBlockRepository.save(timeBlock3)
 
     expect(await timeBlockRepository.findAll()).toEqual([timeBlock1, timeBlock2, timeBlock3])
+  })
+
+  test('find all time blocks within date range', async () => {
+    const timeBlock1: TimeBlockDTO = {
+      id: 'id1',
+      taskId: 'taskId1',
+      createdAt: Date.now(),
+      startTime: new Date('2024-01-01T11:00:00').getTime(),
+      endTime: new Date('2024-01-01T12:00:00').getTime(),
+      rescheduledTimes: 0,
+    }
+
+    const timeBlock2: TimeBlockDTO = {
+      id: 'id2',
+      taskId: 'taskId2',
+      createdAt: Date.now(),
+      startTime: new Date('2024-01-01T12:00:00').getTime(),
+      endTime: new Date('2024-01-01T13:00:00').getTime(),
+      rescheduledTimes: 4,
+    }
+
+    const timeBlock3: TimeBlockDTO = {
+      id: 'id3',
+      taskId: 'taskId3',
+      createdAt: Date.now(),
+      startTime: new Date('2024-01-01T14:00:00').getTime(),
+      endTime: new Date('2024-01-01T15:00:00').getTime(),
+      rescheduledTimes: 2,
+    }
+
+    const timeBlock4: TimeBlockDTO = {
+      id: 'id4',
+      taskId: 'taskId4',
+      createdAt: Date.now(),
+      startTime: new Date('2024-01-01T15:00:00').getTime(),
+      endTime: new Date('2024-01-01T16:00:00').getTime(),
+      rescheduledTimes: 2,
+    }
+
+    await timeBlockRepository.save(timeBlock1)
+    await timeBlockRepository.save(timeBlock2)
+    await timeBlockRepository.save(timeBlock3)
+    await timeBlockRepository.save(timeBlock4)
+
+    expect(
+      await timeBlockRepository.findAllWithin(
+        new Date('2024-01-01T12:00:00').getTime(),
+        new Date('2024-01-01T15:00:00').getTime()
+      )
+    ).toEqual([timeBlock2, timeBlock3])
   })
 
   test('returns null when time block is not found', async () => {

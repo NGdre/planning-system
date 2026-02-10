@@ -45,4 +45,16 @@ export class KnexTimeBlockRepository implements TimeBlockRepository {
       throw error
     }
   }
+
+  async findAllWithin(startDate: number, endDate: number): Promise<TimeBlockDTO[]> {
+    try {
+      return await this.db(this.tableName)
+        .where('start_time', '>=', startDate)
+        .where('end_time', '<=', endDate)
+        .orderBy('start_time', 'asc')
+    } catch (error) {
+      console.error('Error getting all time blocks within date range:', error)
+      throw error
+    }
+  }
 }
