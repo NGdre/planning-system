@@ -40,6 +40,8 @@ export class TimeBlockEntity extends Entity implements TimeBlock {
     this.validate()
   }
 
+  static readonly maxTimeBlockHours = 16
+
   get startTime() {
     return new Date(this._startTime)
   }
@@ -103,8 +105,8 @@ export class TimeBlockEntity extends Entity implements TimeBlock {
       throw new Error('Time block must be at least 15 minutes')
     }
 
-    if (this.durationInHours > 16) {
-      throw new Error('Time block cannot exceed 16 hours')
+    if (this.durationInHours > TimeBlockEntity.maxTimeBlockHours) {
+      throw new Error(`Time block cannot exceed ${TimeBlockEntity.maxTimeBlockHours} hours`)
     }
   }
 
