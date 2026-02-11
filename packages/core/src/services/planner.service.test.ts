@@ -55,7 +55,7 @@ describe('PlannerService', () => {
 
         const result = await plannerService.schedule('task-1', new Date(start), new Date(end))
 
-        expect(result).toBe(false)
+        expect(result.success).toBe(false)
       }
     )
 
@@ -81,9 +81,22 @@ describe('PlannerService', () => {
 
       const result = await plannerService.schedule('task-1', startTime, endTime)
 
-      expect(result).toBe(false)
+      expect(result.success).toBe(false)
       expect(mockTimeBlockRepository.findAllWithin).toHaveBeenCalled()
       expect(mockTimeBlockRepository.save).toHaveBeenCalledTimes(0)
+    })
+
+    test('должен возвращать false если временной блок планируется более чем за месяц вперед', async () => {
+      const now = new Date('2024-03-02T10:00:00')
+      vi.setSystemTime(now)
+
+      const startTime = new Date('2024-04-02T09:00:00')
+      const endTime = new Date('2024-04-02T10:00:00')
+
+      vi.mocked(mockTimeBlockRepository.findByTaskId).mockResolvedValue(null)
+      const result = await plannerService.schedule('task-1', startTime, endTime)
+
+      expect(result.success).toBe(false)
     })
 
     test('должен возвращать true при успешном планировании и сохранять блок', async () => {
@@ -95,6 +108,7 @@ describe('PlannerService', () => {
 
       vi.mocked(mockIdGenerator).mockReturnValue('generated-id-1')
       vi.mocked(mockTimeBlockRepository.findAllWithin).mockResolvedValue([])
+      vi.mocked(mockTimeBlockRepository.findByTaskId).mockResolvedValue(null)
 
       const result = await plannerService.schedule('task-1', startTime, endTime)
 
@@ -104,7 +118,7 @@ describe('PlannerService', () => {
         endTime,
       })
 
-      expect(result).toBe(true)
+      expect(result.success).toBe(true)
       expect(mockTimeBlockRepository.findAllWithin).toHaveBeenCalled()
       expect(mockTimeBlockRepository.save).toHaveBeenCalledWith(desiredTimeBlock.toData())
     })

@@ -12,20 +12,58 @@ export class PlannerService {
     private readonly idGenerator: IdGenerator
   ) {}
 
-  async schedule(taskId: string, startTime: Date, endTime: Date): Promise<boolean> {
-    if (!this.isFutureTimeBlock(startTime, endTime) || !this.isSonnerThanMonth) return false
+  /**
+   * Schedules time block for given task of given time range
+   *
+   * @param taskId - The id of the task for which time block is created
+   * @param startTime - The time at which time block should start
+   * @param endTime - The time at which time block should end
+   * @returns VoidResult
+   */
+  async schedule(taskId: string, startTime: Date, endTime: Date): Promise<VoidResult> {
+    if (!this.isFutureTimeBlock(startTime, endTime))
+      return {
+        success: false,
+        error: 'time blocks can only be scheduled in future',
+      }
 
-    if (await this.hasOverlappingTimeBlocks(startTime, endTime)) return false
+    if (!this.isSonnerThanMonth(endTime))
+      return {
+        success: false,
+        error: 'time blocks can only be scheduled for 30 days ahead at most',
+      }
 
-    const desiredTimeBlock = TimeBlockEntity.create(this.idGenerator, {
-      taskId,
-      startTime,
-      endTime,
-    })
+    const hasOverlap = await this.hasOverlappingTimeBlocks(startTime, endTime)
 
-    await this.timeBlockRepository.save(desiredTimeBlock.toData())
+    if (hasOverlap) {
+      return {
+        success: false,
+        error: 'New time block overlaps with existing blocks',
+      }
+    }
 
-    return true
+    try {
+      const nonExistentTimeBlock = await this.timeBlockRepository.findByTaskId(taskId)
+
+      if (nonExistentTimeBlock !== null)
+        throw new Error('can not create more than one time block for the task')
+
+      const desiredTimeBlock = TimeBlockEntity.create(this.idGenerator, {
+        taskId,
+        startTime,
+        endTime,
+      })
+
+      await this.timeBlockRepository.save(desiredTimeBlock.toData())
+
+      return { success: true, value: undefined }
+    } catch (error) {
+      console.error('Failed to schedule time block:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
+    }
   }
 
   /**
