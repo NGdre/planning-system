@@ -99,6 +99,21 @@ describe('PlannerService', () => {
       expect(result.success).toBe(false)
     })
 
+    test('should return false when a time block exist for the task', async () => {
+      const now = new Date('2024-01-01T10:00:00')
+      vi.setSystemTime(now)
+
+      const startTime = new Date('2024-01-01T14:00:00')
+      const endTime = new Date('2024-01-01T15:00:00')
+
+      vi.mocked(mockTimeBlockRepository.findByTaskId).mockResolvedValue(null)
+
+      const result = await plannerService.schedule('task-1', startTime, endTime)
+
+      expect(result.success).toBe(false)
+      expect(mockTimeBlockRepository.save).toHaveBeenCalledTimes(0)
+    })
+
     test('должен возвращать true при успешном планировании и сохранять блок', async () => {
       const now = new Date('2024-01-01T10:00:00')
       vi.setSystemTime(now)

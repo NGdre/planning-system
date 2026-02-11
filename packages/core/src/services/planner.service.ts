@@ -43,11 +43,6 @@ export class PlannerService {
     }
 
     try {
-      const nonExistentTimeBlock = await this.timeBlockRepository.findByTaskId(taskId)
-
-      if (nonExistentTimeBlock !== null)
-        throw new Error('can not create more than one time block for the task')
-
       const desiredTimeBlock = TimeBlockEntity.create(this.idGenerator, {
         taskId,
         startTime,
