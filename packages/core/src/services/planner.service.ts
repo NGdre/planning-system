@@ -1,5 +1,6 @@
 import { TimeBlockEntity } from '../entities/time-block.entity.js'
 import { IdGenerator, TimeBlockRepository } from '../ports/repository.port.js'
+import { VoidResult } from '../types.js'
 
 const oneHour = 60 * 60 * 1000
 const oneDay = 24 * oneHour
@@ -25,6 +26,65 @@ export class PlannerService {
     await this.timeBlockRepository.save(desiredTimeBlock.toData())
 
     return true
+  }
+
+  /**
+   * Reschedules existing time block
+   *
+   * @param timeBlockId - id of time block that needs to be rescheduled
+   * @param newStartTime - New start time for existing time block
+   * @param newEndTime - New end time for existing time block
+   * @returns VoidResult
+   */
+  async rescheduleTimeBlock(
+    timeBlockId: string,
+    newStartTime: Date,
+    newEndTime: Date
+  ): Promise<VoidResult> {
+    const existingData = await this.timeBlockRepository.findById(timeBlockId)
+
+    if (!existingData) {
+      return {
+        success: false,
+        error: 'Time block not found',
+      }
+    }
+
+    if (!this.isFutureTimeBlock(newStartTime, newEndTime))
+      return {
+        success: false,
+        error: 'time blocks can only be scheduled in future',
+      }
+
+    if (!this.isSonnerThanMonth(newEndTime))
+      return {
+        success: false,
+        error: 'time blocks can only be scheduled for 30 days ahead at most',
+      }
+
+    const hasOverlap = await this.hasOverlappingTimeBlocks(newStartTime, newEndTime, timeBlockId)
+
+    if (hasOverlap) {
+      return {
+        success: false,
+        error: 'New time overlaps with existing blocks',
+      }
+    }
+
+    try {
+      const timeBlock = TimeBlockEntity.restore(existingData)
+      timeBlock.reschedule(newStartTime, newEndTime)
+
+      await this.timeBlockRepository.save(timeBlock.toData())
+
+      return { success: true, value: undefined }
+    } catch (error) {
+      console.error('Failed to reschedule time block:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
+    }
   }
 
   async getBusyTimeBlocks(day: Date) {
