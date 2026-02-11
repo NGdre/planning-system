@@ -1,6 +1,6 @@
-import { TimeBlockEntity } from '../entities/time-block.entity.js'
+import { TimeBlock, TimeBlockEntity } from '../entities/time-block.entity.js'
 import { IdGenerator, TimeBlockRepository } from '../ports/repository.port.js'
-import { VoidResult } from '../types.js'
+import { Result, VoidResult } from '../types.js'
 
 const oneHour = 60 * 60 * 1000
 const oneDay = 24 * oneHour
@@ -125,21 +125,68 @@ export class PlannerService {
     }
   }
 
-  async getBusyTimeBlocks(day: Date) {
-    const startFrom = new Date(day)
+  /**
+   * Finds available slots for a day
+   *
+   * @param day - A day at which available slots to find
+   * @returns free slots longer than 15 minutes in one day
+   */
+  async findAvailableSlots(day: Date): Promise<Result<TimeBlock[]>> {
+    const { startOfDay, endOfDay } = this.getDayBoundaries(day)
 
-    if (day.getDate() === new Date().getDate()) {
-      startFrom.setHours(new Date().getHours())
-      startFrom.setMinutes(new Date().getMinutes())
-    } else {
-      startFrom.setHours(0)
-      startFrom.setMinutes(0)
+    let busySlots
+
+    try {
+      const timeBlocksData = await this.timeBlockRepository.findAllWithin(
+        startOfDay.getTime(),
+        endOfDay.getTime()
+      )
+
+      busySlots = timeBlocksData.map((data) => TimeBlockEntity.restore(data))
+    } catch (error) {
+      console.error(`Failed to find time blocks for the day ${day}:`, error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
     }
 
-    return await this.timeBlockRepository.findAllWithin(
-      startFrom.getTime(),
-      startFrom.getTime() + oneDay
-    )
+    const availableSlots: TimeBlock[] = []
+
+    // busy slots are already sorted in database, but for reliability we do it again
+    const sortedBusySlots = busySlots.sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
+
+    let currentStart =
+      startOfDay.getTime() === sortedBusySlots[0]?.startTime.getTime()
+        ? sortedBusySlots[0].endTime
+        : startOfDay
+
+    for (const busySlot of sortedBusySlots) {
+      const gap = busySlot.startTime.getTime() - currentStart.getTime()
+      const gapMinutes = gap / (1000 * 60)
+
+      if (gapMinutes >= TimeBlockEntity.minTimeBlockMinutes) {
+        availableSlots.push({
+          startTime: new Date(currentStart),
+          endTime: new Date(busySlot.startTime),
+        })
+        currentStart = new Date(busySlot.endTime.getTime())
+      }
+    }
+
+    const remainingTime = endOfDay.getTime() - currentStart.getTime()
+
+    if (remainingTime / (1000 * 60) >= TimeBlockEntity.minTimeBlockMinutes) {
+      availableSlots.push({
+        startTime: new Date(currentStart),
+        endTime: new Date(endOfDay),
+      })
+    }
+
+    return {
+      success: true,
+      value: availableSlots,
+    }
   }
 
   async findClosestTimeBlocks(startTime: Date, endTime: Date) {
@@ -149,6 +196,16 @@ export class PlannerService {
     const right = new Date(endTime.getTime() + maxMsInTimeBlock)
 
     return await this.timeBlockRepository.findAllWithin(left.getTime(), right.getTime())
+  }
+
+  private getDayBoundaries(day: Date): { startOfDay: Date; endOfDay: Date } {
+    const startOfDay = new Date(day)
+    startOfDay.setHours(0, 0, 0, 0)
+
+    const endOfDay = new Date(day)
+    endOfDay.setHours(23, 59, 59, 999)
+
+    return { startOfDay, endOfDay }
   }
 
   private isFutureTimeBlock(startTime: Date, endTime: Date) {

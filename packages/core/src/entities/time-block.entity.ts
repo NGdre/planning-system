@@ -41,6 +41,7 @@ export class TimeBlockEntity extends Entity implements TimeBlock {
   }
 
   static readonly maxTimeBlockHours = 16
+  static readonly minTimeBlockMinutes = 15
 
   get startTime() {
     return new Date(this._startTime)

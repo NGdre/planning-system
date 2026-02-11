@@ -145,76 +145,87 @@ describe('PlannerService', () => {
     })
   })
 
-  describe('getBusyTimeBlocks', () => {
-    test.each([
-      {
-        dayDate: '2024-01-01',
-        expectedStartDate: '2024-01-01T12:30:00',
-        description: 'on the same day',
-      },
-      {
-        dayDate: '2024-01-02',
-        expectedStartDate: '2024-01-02T00:00:00',
-        description: 'on a different day',
-      },
-    ])(
-      'should return correct busy time blocks: $description',
-      async ({ dayDate, expectedStartDate }) => {
-        const mockDate = new Date('2024-01-01T12:30:00')
-        vi.setSystemTime(mockDate)
+  describe('findAvailableSlots', () => {
+    test('works correctly for blocks in between day boundaries', async () => {
+      const day = new Date(2024, 0, 3)
 
-        const day = new Date(dayDate)
-        const expectedStartTime = new Date(expectedStartDate).getTime()
+      const timeBlocks: TimeBlockDTO[] = [
+        {
+          id: 'existing-id-1',
+          taskId: 'task-1',
+          startTime: new Date(day).setHours(1),
+          endTime: new Date(day).setHours(2),
+          createdAt: new Date('2023-01-01T14:30:00').getTime(),
+          rescheduledTimes: 1,
+        },
+        {
+          id: 'existing-id-2',
+          taskId: 'task-2',
+          startTime: new Date(day).setHours(3),
+          endTime: new Date(day).setHours(6),
+          createdAt: new Date('2023-01-01T14:30:00').getTime(),
+          rescheduledTimes: 1,
+        },
+      ]
 
-        const msInDay = 24 * 60 * 60 * 1000
-        const expectedEndTime = expectedStartTime + msInDay
+      vi.mocked(mockTimeBlockRepository.findAllWithin).mockResolvedValue(timeBlocks)
 
-        const mockBusyBlocks: TimeBlockDTO[] = [
+      const result = await plannerService.findAvailableSlots(day)
+
+      expect(result.success).toBe(true)
+
+      if (result.success)
+        expect(result.value).toEqual([
           {
-            id: '1',
-            taskId: 'task-1',
-            startTime: expectedStartTime + 1000,
-            endTime: expectedStartTime + 2000,
-            createdAt: expectedStartTime - 1000,
-            rescheduledTimes: 0,
+            startTime: new Date(new Date(day).setHours(0)),
+            endTime: new Date(new Date(day).setHours(1)),
           },
           {
-            id: '2',
-            taskId: 'task-2',
-            startTime: expectedStartTime + msInDay / 2,
-            endTime: expectedStartTime + msInDay,
-            createdAt: expectedStartTime - 1000,
-            rescheduledTimes: 0,
+            startTime: new Date(new Date(day).setHours(2)),
+            endTime: new Date(new Date(day).setHours(3)),
           },
-        ]
+          {
+            startTime: new Date(new Date(day).setHours(6)),
+            endTime: new Date(new Date(day).setHours(23, 59, 59, 999)),
+          },
+        ])
+    })
 
-        vi.mocked(mockTimeBlockRepository.findAllWithin).mockResolvedValue(mockBusyBlocks)
+    test('works correctly for blocks on the day boundaries', async () => {
+      const day = new Date(2024, 0, 3)
 
-        const result = await plannerService.getBusyTimeBlocks(day)
+      const timeBlocks: TimeBlockDTO[] = [
+        {
+          id: 'existing-id-1',
+          taskId: 'task-1',
+          startTime: new Date(day).setHours(0),
+          endTime: new Date(day).setHours(2),
+          createdAt: new Date('2023-01-01T14:30:00').getTime(),
+          rescheduledTimes: 1,
+        },
+        {
+          id: 'existing-id-2',
+          taskId: 'task-2',
+          startTime: new Date(day).setHours(18),
+          endTime: new Date(day).setHours(23, 59, 59, 999),
+          createdAt: new Date('2023-01-01T14:30:00').getTime(),
+          rescheduledTimes: 1,
+        },
+      ]
 
-        expect(result).toEqual(mockBusyBlocks)
-        expect(mockTimeBlockRepository.findAllWithin).toHaveBeenCalledWith(
-          expectedStartTime,
-          expectedEndTime
-        )
-      }
-    )
+      vi.mocked(mockTimeBlockRepository.findAllWithin).mockResolvedValue(timeBlocks)
 
-    test('должен корректно работать в конце дня', async () => {
-      const mockDate = new Date('2024-01-01T23:59:00')
-      vi.setSystemTime(mockDate)
+      const result = await plannerService.findAvailableSlots(day)
 
-      const day = new Date('2024-01-01')
+      expect(result.success).toBe(true)
 
-      await plannerService.getBusyTimeBlocks(day)
-
-      const expectedStartTime = mockDate.getTime()
-      const expectedEndTime = expectedStartTime + 24 * 60 * 60 * 1000
-
-      expect(mockTimeBlockRepository.findAllWithin).toHaveBeenCalledWith(
-        expectedStartTime,
-        expectedEndTime
-      )
+      if (result.success)
+        expect(result.value).toEqual([
+          {
+            startTime: new Date(new Date(day).setHours(2)),
+            endTime: new Date(new Date(day).setHours(18)),
+          },
+        ])
     })
   })
 
