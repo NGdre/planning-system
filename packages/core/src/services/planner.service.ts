@@ -121,25 +121,24 @@ export class PlannerService {
   }
 
   /**
-   * Finds available slots for a day
+   * Finds available slots for a given date range
    *
-   * @param day - A day at which available slots to find
+   * @param from - A date at which available slots to search from
+   * @param day -  A date at which available slots to search to
    * @returns free slots longer than 15 minutes in one day
    */
-  async findAvailableSlots(day: Date): Promise<Result<TimeBlock[]>> {
-    const { startOfDay, endOfDay } = this.getDayBoundaries(day)
-
+  async findAvailableSlots(from: Date, to: Date): Promise<Result<TimeBlock[]>> {
     let busySlots
 
     try {
       const timeBlocksData = await this.timeBlockRepository.findAllWithin(
-        startOfDay.getTime(),
-        endOfDay.getTime()
+        from.getTime(),
+        to.getTime()
       )
 
       busySlots = timeBlocksData.map((data) => TimeBlockEntity.restore(data))
     } catch (error) {
-      console.error(`Failed to find time blocks for the day ${day}:`, error)
+      console.error(`Failed to find time blocks from date ${from} to date ${to}:`, error)
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -152,9 +151,7 @@ export class PlannerService {
     const sortedBusySlots = busySlots.sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
 
     let currentStart =
-      startOfDay.getTime() === sortedBusySlots[0]?.startTime.getTime()
-        ? sortedBusySlots[0].endTime
-        : startOfDay
+      from.getTime() === sortedBusySlots[0]?.startTime.getTime() ? sortedBusySlots[0].endTime : from
 
     for (const busySlot of sortedBusySlots) {
       const gap = busySlot.startTime.getTime() - currentStart.getTime()
@@ -165,16 +162,16 @@ export class PlannerService {
           startTime: new Date(currentStart),
           endTime: new Date(busySlot.startTime),
         })
-        currentStart = new Date(busySlot.endTime.getTime())
       }
+      currentStart = new Date(busySlot.endTime.getTime())
     }
 
-    const remainingTime = endOfDay.getTime() - currentStart.getTime()
+    const remainingTime = to.getTime() - currentStart.getTime()
 
     if (remainingTime / (1000 * 60) >= TimeBlockEntity.minTimeBlockMinutes) {
       availableSlots.push({
         startTime: new Date(currentStart),
-        endTime: new Date(endOfDay),
+        endTime: new Date(to),
       })
     }
 
