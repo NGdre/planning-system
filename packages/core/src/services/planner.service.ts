@@ -190,6 +190,10 @@ export class PlannerService {
     return await this.timeBlockRepository.findAllWithin(left.getTime(), right.getTime())
   }
 
+  isLastDayToSchedule(day: Date) {
+    return !this.isSonnerThanMonth(new Date(new Date(day).setHours(24)))
+  }
+
   private getDayBoundaries(day: Date): { startOfDay: Date; endOfDay: Date } {
     const startOfDay = new Date(day)
     startOfDay.setHours(0, 0, 0, 0)
