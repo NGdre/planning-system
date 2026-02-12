@@ -1,6 +1,6 @@
 import { TaskDTO, TaskEntity } from '../entities/task.entity.js'
 
-export const enum TaskAction {
+export enum TaskAction {
   START = 'START',
   SCHEDULE = 'SCHEDULE',
   EDIT = 'EDIT',
