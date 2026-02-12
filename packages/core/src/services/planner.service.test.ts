@@ -15,17 +15,16 @@ const mockIdGenerator: IdGenerator = vi.fn()
 
 describe('PlannerService', () => {
   let plannerService: PlannerService
-  let originalDate: DateConstructor
 
   beforeEach(() => {
-    originalDate = global.Date
+    vi.useFakeTimers()
 
     plannerService = new PlannerService(mockTimeBlockRepository, mockIdGenerator)
     vi.clearAllMocks()
   })
 
   afterEach(() => {
-    global.Date = originalDate
+    vi.useRealTimers()
   })
 
   describe('schedule', () => {
@@ -161,86 +160,181 @@ describe('PlannerService', () => {
   })
 
   describe('findAvailableSlots', () => {
-    test('works correctly for blocks in between day boundaries', async () => {
-      const day = new Date(2024, 0, 3)
-
-      const timeBlocks: TimeBlockDTO[] = [
-        {
-          id: 'existing-id-1',
-          taskId: 'task-1',
-          startTime: new Date(day).setHours(1),
-          endTime: new Date(day).setHours(2),
-          createdAt: new Date('2023-01-01T14:30:00').getTime(),
-          rescheduledTimes: 1,
-        },
-        {
-          id: 'existing-id-2',
-          taskId: 'task-2',
-          startTime: new Date(day).setHours(3),
-          endTime: new Date(day).setHours(6),
-          createdAt: new Date('2023-01-01T14:30:00').getTime(),
-          rescheduledTimes: 1,
-        },
-      ]
-
-      vi.mocked(mockTimeBlockRepository.findAllWithin).mockResolvedValue(timeBlocks)
-
-      const result = await plannerService.findAvailableSlots(day)
-
-      expect(result.success).toBe(true)
-
-      if (result.success)
-        expect(result.value).toEqual([
-          {
-            startTime: new Date(new Date(day).setHours(0)),
-            endTime: new Date(new Date(day).setHours(1)),
-          },
-          {
-            startTime: new Date(new Date(day).setHours(2)),
-            endTime: new Date(new Date(day).setHours(3)),
-          },
-          {
-            startTime: new Date(new Date(day).setHours(6)),
-            endTime: new Date(new Date(day).setHours(23, 59, 59, 999)),
-          },
-        ])
+    const createBusyDTO = (start: Date, end: Date, id = 'busy') => ({
+      id,
+      taskId: 'task',
+      startTime: start.getTime(),
+      endTime: end.getTime(),
+      createdAt: Date.now(),
+      rescheduledTimes: 0,
     })
 
-    test('works correctly for blocks on the day boundaries', async () => {
-      const day = new Date(2024, 0, 3)
+    test('returns the entire interval as a single slot if it is longer than 15 minutes and there are no busy slots', async () => {
+      const from = new Date('2024-01-01T10:00:00')
+      const to = new Date('2024-01-01T12:00:00')
 
-      const timeBlocks: TimeBlockDTO[] = [
-        {
-          id: 'existing-id-1',
-          taskId: 'task-1',
-          startTime: new Date(day).setHours(0),
-          endTime: new Date(day).setHours(2),
-          createdAt: new Date('2023-01-01T14:30:00').getTime(),
-          rescheduledTimes: 1,
-        },
-        {
-          id: 'existing-id-2',
-          taskId: 'task-2',
-          startTime: new Date(day).setHours(18),
-          endTime: new Date(day).setHours(23, 59, 59, 999),
-          createdAt: new Date('2023-01-01T14:30:00').getTime(),
-          rescheduledTimes: 1,
-        },
-      ]
+      vi.mocked(mockTimeBlockRepository.findAllWithin).mockResolvedValue([])
 
-      vi.mocked(mockTimeBlockRepository.findAllWithin).mockResolvedValue(timeBlocks)
-
-      const result = await plannerService.findAvailableSlots(day)
+      const result = await plannerService.findAvailableSlots(from, to)
 
       expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.value).toHaveLength(1)
+        expect(result.value[0]).toEqual({
+          startTime: from,
+          endTime: to,
+        })
+      }
+      expect(mockTimeBlockRepository.findAllWithin).toHaveBeenCalledWith(
+        from.getTime(),
+        to.getTime()
+      )
+    })
 
-      if (result.success)
+    test('does not return any slots if the entire time is busy', async () => {
+      const from = new Date('2024-01-01T10:00:00')
+      const to = new Date('2024-01-01T12:00:00')
+
+      const busy = createBusyDTO(from, to)
+      vi.mocked(mockTimeBlockRepository.findAllWithin).mockResolvedValue([busy])
+
+      const result = await plannerService.findAvailableSlots(from, to)
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.value).toEqual([])
+      }
+    })
+
+    test('does not add a gap shorter than 15 minutes', async () => {
+      const from = new Date('2024-01-01T10:00:00')
+      const to = new Date('2024-01-01T12:00:00')
+
+      // block 10:00–11:00, next block 11:05–12:00: gap 5 min
+      const block1 = createBusyDTO(new Date('2024-01-01T10:00:00'), new Date('2024-01-01T11:00:00'))
+      const block2 = createBusyDTO(new Date('2024-01-01T11:05:00'), new Date('2024-01-01T12:00:00'))
+
+      vi.mocked(mockTimeBlockRepository.findAllWithin).mockResolvedValue([block1, block2])
+
+      const result = await plannerService.findAvailableSlots(from, to)
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.value).toEqual([])
+      }
+    })
+
+    test('adds a gap of exactly 15 minutes', async () => {
+      const from = new Date('2024-01-01T10:00:00')
+      const to = new Date('2024-01-01T12:00:00')
+
+      // gap 15 minutes (10:45–11:00)
+      const block1 = createBusyDTO(new Date('2024-01-01T10:00:00'), new Date('2024-01-01T10:45:00'))
+      const block2 = createBusyDTO(new Date('2024-01-01T11:00:00'), new Date('2024-01-01T12:00:00'))
+
+      vi.mocked(mockTimeBlockRepository.findAllWithin).mockResolvedValue([block1, block2])
+
+      const result = await plannerService.findAvailableSlots(from, to)
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.value).toHaveLength(1)
+        expect(result.value[0]).toEqual({
+          startTime: new Date('2024-01-01T10:45:00'),
+          endTime: new Date('2024-01-01T11:00:00'),
+        })
+      }
+    })
+
+    test('correctly handles a block that starts at from', async () => {
+      const from = new Date('2024-01-01T10:00:00')
+      const to = new Date('2024-01-01T12:00:00')
+
+      const busy = createBusyDTO(from, new Date('2024-01-01T11:00:00'))
+      vi.mocked(mockTimeBlockRepository.findAllWithin).mockResolvedValue([busy])
+
+      const result = await plannerService.findAvailableSlots(from, to)
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.value).toHaveLength(1)
+        expect(result.value[0]).toEqual({
+          startTime: new Date('2024-01-01T11:00:00'),
+          endTime: to,
+        })
+      }
+    })
+
+    test('correctly handles a block that ends at to', async () => {
+      const from = new Date('2024-01-01T10:00:00')
+      const to = new Date('2024-01-01T12:00:00')
+
+      const busy = createBusyDTO(new Date('2024-01-01T11:00:00'), to)
+      vi.mocked(mockTimeBlockRepository.findAllWithin).mockResolvedValue([busy])
+
+      const result = await plannerService.findAvailableSlots(from, to)
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.value).toHaveLength(1)
+        expect(result.value[0]).toEqual({
+          startTime: from,
+          endTime: new Date('2024-01-01T11:00:00'),
+        })
+      }
+    })
+
+    test('finds all suitable gaps between multiple blocks', async () => {
+      const from = new Date('2024-01-01T09:00:00')
+      const to = new Date('2024-01-01T18:00:00')
+
+      const blocks = [
+        createBusyDTO(new Date('2024-01-01T09:00:00'), new Date('2024-01-01T10:00:00')),
+        createBusyDTO(new Date('2024-01-01T11:00:00'), new Date('2024-01-01T12:30:00')),
+        createBusyDTO(new Date('2024-01-01T13:00:00'), new Date('2024-01-01T14:00:00')),
+      ]
+
+      vi.mocked(mockTimeBlockRepository.findAllWithin).mockResolvedValue(blocks)
+
+      const result = await plannerService.findAvailableSlots(from, to)
+
+      expect(result.success).toBe(true)
+      if (result.success) {
         expect(result.value).toEqual([
-          {
-            startTime: new Date(new Date(day).setHours(2)),
-            endTime: new Date(new Date(day).setHours(18)),
-          },
+          { startTime: new Date('2024-01-01T10:00:00'), endTime: new Date('2024-01-01T11:00:00') },
+          { startTime: new Date('2024-01-01T12:30:00'), endTime: new Date('2024-01-01T13:00:00') },
+          { startTime: new Date('2024-01-01T14:00:00'), endTime: new Date('2024-01-01T18:00:00') },
         ])
+      }
+    })
+
+    test('returns an empty array if from equals to', async () => {
+      const date = new Date('2024-01-01T12:00:00')
+      vi.mocked(mockTimeBlockRepository.findAllWithin).mockResolvedValue([])
+
+      const result = await plannerService.findAvailableSlots(date, date)
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.value).toEqual([])
+      }
+    })
+
+    test('returns a Result with an error if the repository fails', async () => {
+      const from = new Date()
+      const to = new Date(from.getTime() + 3600000)
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      vi.mocked(mockTimeBlockRepository.findAllWithin).mockRejectedValue(new Error('DB error'))
+
+      const result = await plannerService.findAvailableSlots(from, to)
+
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error).toBe('DB error')
+      }
+
+      consoleErrorSpy.mockRestore()
     })
   })
 
