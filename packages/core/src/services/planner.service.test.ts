@@ -1,7 +1,13 @@
 import { describe, it as test, expect, vi, beforeEach, afterEach } from 'vitest'
 import { PlannerService } from './planner.service.js'
 import { TimeBlockDTO, TimeBlockEntity } from '../entities/time-block.entity.js'
-import type { TimeBlockRepository, IdGenerator } from '../ports/repository.port.js'
+import type { TimeBlockRepository, IdGenerator, TaskRepository } from '../ports/repository.port.js'
+
+const mockTaskRepository: TaskRepository = {
+  save: vi.fn(),
+  findAll: vi.fn(),
+  findById: vi.fn(),
+}
 
 const mockTimeBlockRepository: TimeBlockRepository = {
   save: vi.fn(),
@@ -19,7 +25,11 @@ describe('PlannerService', () => {
   beforeEach(() => {
     vi.useFakeTimers()
 
-    plannerService = new PlannerService(mockTimeBlockRepository, mockIdGenerator)
+    plannerService = new PlannerService(
+      mockTaskRepository,
+      mockTimeBlockRepository,
+      mockIdGenerator
+    )
     vi.clearAllMocks()
   })
 
@@ -123,6 +133,11 @@ describe('PlannerService', () => {
       vi.mocked(mockIdGenerator).mockReturnValue('generated-id-1')
       vi.mocked(mockTimeBlockRepository.findAllWithin).mockResolvedValue([])
       vi.mocked(mockTimeBlockRepository.findByTaskId).mockResolvedValue(null)
+      vi.mocked(mockTaskRepository.findById).mockResolvedValue({
+        id: 'task-1',
+        status: 'draft',
+        title: 'important task',
+      })
 
       const result = await plannerService.schedule('task-1', startTime, endTime)
 
@@ -134,6 +149,7 @@ describe('PlannerService', () => {
 
       expect(result.success).toBe(true)
       expect(mockTimeBlockRepository.findAllWithin).toHaveBeenCalled()
+      expect(mockTaskRepository.save).toHaveBeenCalled()
       expect(mockTimeBlockRepository.save).toHaveBeenCalledWith(desiredTimeBlock.toData())
     })
 

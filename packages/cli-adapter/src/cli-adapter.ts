@@ -26,7 +26,7 @@ export class CLIAdapter {
     const taskRepo = new KnexTaskRepository(db)
     const timeBlockRepo = new KnexTimeBlockRepository(db)
     const userActionsService = new UserActionsService()
-    const plannerService = new PlannerService(timeBlockRepo, uuid)
+    const plannerService = new PlannerService(taskRepo, timeBlockRepo, uuid)
 
     return new CLIAdapter(taskRepo, timeBlockRepo, userActionsService, plannerService)
   }

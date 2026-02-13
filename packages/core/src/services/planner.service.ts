@@ -1,5 +1,6 @@
+import { TaskEntity } from '../entities/task.entity.js'
 import { TimeBlock, TimeBlockEntity } from '../entities/time-block.entity.js'
-import { IdGenerator, TimeBlockRepository } from '../ports/repository.port.js'
+import { IdGenerator, TaskRepository, TimeBlockRepository } from '../ports/repository.port.js'
 import { Result, VoidResult } from '../types.js'
 
 const oneHour = 60 * 60 * 1000
@@ -8,6 +9,7 @@ const oneMonth = 30 * oneDay
 
 export class PlannerService {
   constructor(
+    private readonly taskRepository: TaskRepository,
     private readonly timeBlockRepository: TimeBlockRepository,
     private readonly idGenerator: IdGenerator
   ) {}
@@ -43,12 +45,22 @@ export class PlannerService {
     }
 
     try {
+      const task = await this.taskRepository.findById(taskId)
+
+      if (!task) return { success: false, error: 'task is not found when scheduling' }
+
+      const taskEntity = TaskEntity.restore(task)
+
+      taskEntity.schedule()
+
       const desiredTimeBlock = TimeBlockEntity.create(this.idGenerator, {
         taskId,
         startTime,
         endTime,
       })
 
+      // TODO: unsafe, add transaction
+      await this.taskRepository.save(taskEntity.toData())
       await this.timeBlockRepository.save(desiredTimeBlock.toData())
 
       return { success: true, value: undefined }
