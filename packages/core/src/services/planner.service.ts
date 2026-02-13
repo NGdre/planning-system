@@ -26,13 +26,13 @@ export class PlannerService {
     if (!this.isFutureTimeBlock(startTime, endTime))
       return {
         success: false,
-        error: 'time blocks can only be scheduled in future',
+        error: 'Time blocks can only be scheduled in future',
       }
 
-    if (!this.isSonnerThanMonth(endTime))
+    if (!this.isSoonerThanMonth(endTime))
       return {
         success: false,
-        error: 'time blocks can only be scheduled for 30 days ahead at most',
+        error: 'Time blocks can only be scheduled for 30 days ahead at most',
       }
 
     const hasOverlap = await this.hasOverlappingTimeBlocks(startTime, endTime)
@@ -40,14 +40,14 @@ export class PlannerService {
     if (hasOverlap) {
       return {
         success: false,
-        error: 'New time block overlaps with existing blocks',
+        error: 'Time block overlaps with existing blocks',
       }
     }
 
     try {
       const task = await this.taskRepository.findById(taskId)
 
-      if (!task) return { success: false, error: 'task is not found when scheduling' }
+      if (!task) return { success: false, error: 'Task is not found when scheduling' }
 
       const taskEntity = TaskEntity.restore(task)
 
@@ -63,7 +63,7 @@ export class PlannerService {
       await this.taskRepository.save(taskEntity.toData())
       await this.timeBlockRepository.save(desiredTimeBlock.toData())
 
-      return { success: true, value: undefined }
+      return { success: true }
     } catch (error) {
       console.error('Failed to schedule time block:', error)
       return {
@@ -91,20 +91,20 @@ export class PlannerService {
     if (!existingData) {
       return {
         success: false,
-        error: 'Time block not found',
+        error: 'Time block is not found',
       }
     }
 
     if (!this.isFutureTimeBlock(newStartTime, newEndTime))
       return {
         success: false,
-        error: 'time blocks can only be scheduled in future',
+        error: 'Time blocks can only be scheduled in future',
       }
 
-    if (!this.isSonnerThanMonth(newEndTime))
+    if (!this.isSoonerThanMonth(newEndTime))
       return {
         success: false,
-        error: 'time blocks can only be scheduled for 30 days ahead at most',
+        error: 'Time blocks can only be scheduled for 30 days ahead at most',
       }
 
     const hasOverlap = await this.hasOverlappingTimeBlocks(newStartTime, newEndTime, timeBlockId)
@@ -112,7 +112,7 @@ export class PlannerService {
     if (hasOverlap) {
       return {
         success: false,
-        error: 'New time overlaps with existing blocks',
+        error: 'Time block overlaps with existing blocks',
       }
     }
 
@@ -122,7 +122,7 @@ export class PlannerService {
 
       await this.timeBlockRepository.save(timeBlock.toData())
 
-      return { success: true, value: undefined }
+      return { success: true }
     } catch (error) {
       console.error('Failed to reschedule time block:', error)
       return {
@@ -193,17 +193,17 @@ export class PlannerService {
     }
   }
 
-  async findClosestTimeBlocks(startTime: Date, endTime: Date) {
+  isLastDayToSchedule(day: Date) {
+    return !this.isSoonerThanMonth(new Date(new Date(day).setHours(24)))
+  }
+
+  private async findClosestTimeBlocks(startTime: Date, endTime: Date) {
     const maxMsInTimeBlock = TimeBlockEntity.maxTimeBlockHours * oneHour
 
     const left = new Date(startTime.getTime() - maxMsInTimeBlock)
     const right = new Date(endTime.getTime() + maxMsInTimeBlock)
 
     return await this.timeBlockRepository.findAllWithin(left.getTime(), right.getTime())
-  }
-
-  isLastDayToSchedule(day: Date) {
-    return !this.isSonnerThanMonth(new Date(new Date(day).setHours(24)))
   }
 
   private getDayBoundaries(day: Date): { startOfDay: Date; endOfDay: Date } {
@@ -222,7 +222,7 @@ export class PlannerService {
     return currTime <= startTime && currTime < endTime
   }
 
-  private isSonnerThanMonth(endTime: Date) {
+  private isSoonerThanMonth(endTime: Date) {
     const currTime = new Date()
 
     const monthAhead = new Date(currTime.getTime() + oneMonth)
