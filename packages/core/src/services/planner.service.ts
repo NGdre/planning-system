@@ -23,17 +23,11 @@ export class PlannerService {
    * @returns VoidResult
    */
   async schedule(taskId: string, startTime: Date, endTime: Date): Promise<VoidResult> {
-    if (!this.isFutureTimeBlock(startTime, endTime))
-      return {
-        success: false,
-        error: 'Time blocks can only be scheduled in future',
-      }
+    const validationResult = this.validateTimeRange(startTime, endTime)
 
-    if (!this.isSoonerThanMonth(endTime))
-      return {
-        success: false,
-        error: 'Time blocks can only be scheduled for 30 days ahead at most',
-      }
+    if (!validationResult.success) {
+      return validationResult
+    }
 
     const hasOverlap = await this.hasOverlappingTimeBlocks(startTime, endTime)
 
@@ -95,17 +89,11 @@ export class PlannerService {
       }
     }
 
-    if (!this.isFutureTimeBlock(newStartTime, newEndTime))
-      return {
-        success: false,
-        error: 'Time blocks can only be scheduled in future',
-      }
+    const validationResult = this.validateTimeRange(newStartTime, newEndTime)
 
-    if (!this.isSoonerThanMonth(newEndTime))
-      return {
-        success: false,
-        error: 'Time blocks can only be scheduled for 30 days ahead at most',
-      }
+    if (!validationResult.success) {
+      return validationResult
+    }
 
     const hasOverlap = await this.hasOverlappingTimeBlocks(newStartTime, newEndTime, timeBlockId)
 
@@ -228,6 +216,21 @@ export class PlannerService {
     const monthAhead = new Date(currTime.getTime() + oneMonth)
 
     return endTime <= monthAhead
+  }
+
+  private validateTimeRange(startTime: Date, endTime: Date): VoidResult {
+    if (!this.isFutureTimeBlock(startTime, endTime)) {
+      return { success: false, error: 'Time blocks can only be scheduled in future' }
+    }
+
+    if (!this.isSoonerThanMonth(endTime)) {
+      return {
+        success: false,
+        error: 'Time blocks can only be scheduled for 30 days ahead at most',
+      }
+    }
+
+    return { success: true }
   }
 
   /**
