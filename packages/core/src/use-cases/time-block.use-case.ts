@@ -7,13 +7,11 @@ export type DaySlots = { slots: TimeBlock[]; hasPrevDay: boolean; hasNextDay: bo
 export class ShowAvailableSlotsForDayUseCase {
   constructor(private readonly plannerService: PlannerService) {}
 
-  async execute(day: string): Promise<Result<DaySlots>> {
-    const parsedDay = new Date(Date.parse(day))
+  async execute(day: Date, now: Date): Promise<Result<DaySlots>> {
+    const isSameDay = now.toISOString().slice(0, 10) === day.toISOString().slice(0, 10)
 
-    const isSameDay = new Date().toISOString().slice(0, 10) === parsedDay.toISOString().slice(0, 10)
-
-    const from = isSameDay ? new Date() : parsedDay
-    const to = new Date(new Date(day).setHours(24))
+    const from = isSameDay ? now : day
+    const to = new Date(new Date(day).setUTCHours(24))
 
     const availableSlots = await this.plannerService.findAvailableSlots(from, to)
 
@@ -22,7 +20,7 @@ export class ShowAvailableSlotsForDayUseCase {
         value: {
           slots: availableSlots.value,
           hasPrevDay: !isSameDay,
-          hasNextDay: !this.plannerService.isLastDayToSchedule(parsedDay),
+          hasNextDay: !this.plannerService.isLastDayToSchedule(day),
         },
         success: true,
       }
@@ -35,10 +33,7 @@ export class ShowAvailableSlotsForDayUseCase {
 export class ScheduleTimeBlockForTask {
   constructor(private readonly plannerService: PlannerService) {}
 
-  async execute(taskId: string, startTime: string, endTime: string) {
-    const parsedStart = new Date(startTime)
-    const parsedEnd = new Date(endTime)
-
-    return await this.plannerService.schedule(taskId, parsedStart, parsedEnd)
+  async execute(taskId: string, startTime: Date, endTime: Date) {
+    return await this.plannerService.schedule(taskId, startTime, endTime)
   }
 }

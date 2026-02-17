@@ -1,19 +1,26 @@
 import {
-  CreateTaskUseCase,
   CreateTaskInput,
-  ListTasksUseCase,
+  CreateTaskUseCase,
   GetSpecificTaskUseCase,
-  UserActionsService,
-  ScheduleTimeBlockForTask,
+  ListTasksUseCase,
   PlannerService,
+  Result,
+  ScheduleTimeBlockForTask,
   ShowAvailableSlotsForDayUseCase,
+  UserActionsService,
+  VoidResult,
 } from '@planning-system/core'
-import { KnexTaskRepository } from './persistence/repositories/task.repo.js'
+import { fromZonedTime } from 'date-fns-tz'
 import { v4 as uuid } from 'uuid'
+import { parseDay } from './parsing/parse-day.js'
+import { parseTimeInZone } from './parsing/parse-time-in-zone.js'
 import { DatabaseConnection } from './persistence/db.js'
+import { KnexTaskRepository } from './persistence/repositories/task.repo.js'
 import { KnexTimeBlockRepository } from './persistence/repositories/time-block.repo.js'
 
 export class CLIAdapter {
+  private userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+
   constructor(
     private readonly taskRepo: KnexTaskRepository,
     private readonly timeBlockRepo: KnexTimeBlockRepository,
@@ -43,15 +50,60 @@ export class CLIAdapter {
     return await new GetSpecificTaskUseCase(this.taskRepo, this.userActionsService).execute(id)
   }
 
-  async schedule(taskId: string, startTime: string, endTime: string) {
+  async schedule(
+    taskId: string,
+    day: string,
+    startTime: string,
+    endTime: string
+  ): Promise<VoidResult<string>> {
+    const parsedDay = this.parseDay(day)
+
+    if (!parsedDay.success) return parsedDay
+
+    const userTimeZone = this.userTimeZone
+
+    const createStartTime = parseTimeInZone(startTime, userTimeZone)
+    const createEndTime = parseTimeInZone(endTime, userTimeZone)
+
+    if (createStartTime === null || createEndTime === null) {
+      return {
+        success: false,
+        error: 'the time block does not match the format',
+      }
+    }
+
     return await new ScheduleTimeBlockForTask(this.plannerService).execute(
       taskId,
-      startTime,
-      endTime
+      createStartTime(parsedDay.value),
+      createEndTime(parsedDay.value)
     )
   }
 
   async showAvailableSlots(day: string) {
-    return await new ShowAvailableSlotsForDayUseCase(this.plannerService).execute(day)
+    const parsedDay = this.parseDay(day)
+
+    if (!parsedDay.success) return parsedDay
+
+    return await new ShowAvailableSlotsForDayUseCase(this.plannerService).execute(
+      parsedDay.value,
+      fromZonedTime(new Date(), this.userTimeZone)
+    )
+  }
+
+  parseDay(day: string): Result<Date> {
+    const parsedDay = parseDay(day)
+
+    if (parsedDay === null)
+      return {
+        success: false,
+        error: 'the day does not match the format',
+      }
+
+    const userTimeZone = this.userTimeZone
+
+    return {
+      success: true,
+      value: fromZonedTime(parsedDay, userTimeZone),
+    }
   }
 }
