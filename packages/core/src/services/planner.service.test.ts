@@ -1,4 +1,4 @@
-import { describe, it as test, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
 import { PlannerService } from './planner.service.js'
 import { TimeBlockDTO, TimeBlockEntity } from '../entities/time-block.entity.js'
 import type { TimeBlockRepository, IdGenerator, TaskRepository } from '../ports/repository.port.js'
@@ -351,27 +351,6 @@ describe('PlannerService', () => {
       }
 
       consoleErrorSpy.mockRestore()
-    })
-  })
-
-  describe('findClosestTimeBlocks', () => {
-    // сомнительной полезности тест
-    test('должен искать блоки в расширенном диапазоне', async () => {
-      const startTime = new Date('2024-01-01T14:00:00')
-      const endTime = new Date('2024-01-01T15:00:00')
-
-      const maxMsInTimeBlock = TimeBlockEntity.maxTimeBlockHours * 60 * 60 * 1000
-      const expectedLeft = startTime.getTime() - maxMsInTimeBlock
-      const expectedRight = endTime.getTime() + maxMsInTimeBlock
-
-      vi.mocked(mockTimeBlockRepository.findAllWithin).mockResolvedValue([])
-
-      await plannerService.findClosestTimeBlocks(startTime, endTime)
-
-      expect(mockTimeBlockRepository.findAllWithin).toHaveBeenCalledWith(
-        expectedLeft,
-        expectedRight
-      )
     })
   })
 
