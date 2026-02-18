@@ -7,9 +7,12 @@ import {
   Result,
   ScheduleTimeBlockForTask,
   ShowAvailableSlotsForDayUseCase,
+  TaskDetails as CoreTaskDetails,
   UserActionsService,
   VoidResult,
 } from '@planning-system/core'
+import { ru } from 'date-fns/locale'
+import { format } from 'date-fns'
 import { fromZonedTime } from 'date-fns-tz'
 import { v4 as uuid } from 'uuid'
 import { parseDay } from './parsing/parse-day.js'
@@ -17,6 +20,8 @@ import { parseTimeInZone } from './parsing/parse-time-in-zone.js'
 import { DatabaseConnection } from './persistence/db.js'
 import { KnexTaskRepository } from './persistence/repositories/task.repo.js'
 import { KnexTimeBlockRepository } from './persistence/repositories/time-block.repo.js'
+
+export type TaskDetails = CoreTaskDetails & { timeBlock?: string; day?: string }
 
 export class CLIAdapter {
   private userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -46,8 +51,29 @@ export class CLIAdapter {
     return await new ListTasksUseCase(this.taskRepo).execute()
   }
 
-  async getSpecificTask(id: string) {
-    return await new GetSpecificTaskUseCase(this.taskRepo, this.userActionsService).execute(id)
+  async getSpecificTask(id: string): Promise<Result<TaskDetails>> {
+    const result = await new GetSpecificTaskUseCase(
+      this.taskRepo,
+      this.timeBlockRepo,
+      this.userActionsService
+    ).execute(id)
+
+    if (!result.success) return result
+
+    let timeBlock, day
+
+    if (result.value.startTime && result.value.endTime) {
+      timeBlock = this.formatTimeBlock(result.value.startTime, result.value.endTime)
+
+      day = format(result.value.startTime, 'dd MMMM yyyy', {
+        locale: ru,
+      })
+    }
+
+    return {
+      success: true,
+      value: Object.assign({}, result.value, { timeBlock, day }),
+    }
   }
 
   async schedule(
@@ -105,5 +131,9 @@ export class CLIAdapter {
       success: true,
       value: fromZonedTime(parsedDay, userTimeZone),
     }
+  }
+
+  private formatTimeBlock(startTime: Date, endTime: Date) {
+    return format(startTime, 'HH:mm') + '-' + format(endTime, 'HH:mm')
   }
 }
