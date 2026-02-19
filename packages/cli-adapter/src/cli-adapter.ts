@@ -12,8 +12,8 @@ import {
   VoidResult,
 } from '@planning-system/core'
 import { ru } from 'date-fns/locale'
-import { format } from 'date-fns'
-import { fromZonedTime } from 'date-fns-tz'
+import { isSameDay } from 'date-fns'
+import { fromZonedTime, format, formatInTimeZone } from 'date-fns-tz'
 import { v4 as uuid } from 'uuid'
 import { parseDay } from './parsing/parse-day.js'
 import { parseTimeInZone } from './parsing/parse-time-in-zone.js'
@@ -24,7 +24,7 @@ import { KnexTimeBlockRepository } from './persistence/repositories/time-block.r
 export type TaskDetails = CoreTaskDetails & { timeBlock?: string; day?: string }
 
 export class CLIAdapter {
-  private userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+  private _userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
 
   constructor(
     private readonly taskRepo: KnexTaskRepository,
@@ -32,6 +32,10 @@ export class CLIAdapter {
     private readonly userActionsService: UserActionsService,
     private readonly plannerService: PlannerService
   ) {}
+
+  set userTimeZone(tz: string) {
+    this._userTimeZone = tz
+  }
 
   static async create() {
     const db = await DatabaseConnection.getConnection()
@@ -86,7 +90,9 @@ export class CLIAdapter {
 
     if (!parsedDay.success) return parsedDay
 
-    const userTimeZone = this.userTimeZone
+    const userTimeZone = this._userTimeZone
+
+    const dayUTC = fromZonedTime(parsedDay.value, userTimeZone)
 
     const createStartTime = parseTimeInZone(startTime, userTimeZone)
     const createEndTime = parseTimeInZone(endTime, userTimeZone)
@@ -100,8 +106,8 @@ export class CLIAdapter {
 
     return await new ScheduleTimeBlockForTask(this.plannerService).execute(
       taskId,
-      createStartTime(parsedDay.value),
-      createEndTime(parsedDay.value)
+      createStartTime(dayUTC),
+      createEndTime(dayUTC)
     )
   }
 
@@ -110,10 +116,29 @@ export class CLIAdapter {
 
     if (!parsedDay.success) return parsedDay
 
-    return await new ShowAvailableSlotsForDayUseCase(this.plannerService).execute(
-      parsedDay.value,
-      fromZonedTime(new Date(), this.userTimeZone)
+    const userTimeZone = this._userTimeZone
+
+    const dayUTC = fromZonedTime(parsedDay.value, userTimeZone)
+
+    const result = await new ShowAvailableSlotsForDayUseCase(this.plannerService).execute(
+      dayUTC,
+      fromZonedTime(new Date(), this._userTimeZone),
+      fromZonedTime(new Date(parsedDay.value).setHours(24), userTimeZone),
+      isSameDay(parsedDay.value, new Date())
     )
+
+    if (!result.success) return result
+
+    const formatedSlots = result.value.slots.map((slot) =>
+      this.formatTimeBlock(slot.startTime, slot.endTime)
+    )
+
+    return {
+      success: true,
+      value: Object.assign(result.value, {
+        slots: formatedSlots,
+      }),
+    }
   }
 
   parseDay(day: string): Result<Date> {
@@ -125,15 +150,16 @@ export class CLIAdapter {
         error: 'the day does not match the format',
       }
 
-    const userTimeZone = this.userTimeZone
-
     return {
       success: true,
-      value: fromZonedTime(parsedDay, userTimeZone),
+      value: parsedDay,
     }
   }
 
   private formatTimeBlock(startTime: Date, endTime: Date) {
-    return format(startTime, 'HH:mm') + '-' + format(endTime, 'HH:mm')
+    const formatedStart = formatInTimeZone(startTime, this._userTimeZone, 'HH:mm')
+    const formatedEnd = formatInTimeZone(endTime, this._userTimeZone, 'HH:mm')
+
+    return formatedStart + '-' + (formatedEnd === '00:00' ? '24:00' : formatedEnd)
   }
 }

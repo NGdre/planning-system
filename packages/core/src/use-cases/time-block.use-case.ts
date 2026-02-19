@@ -7,11 +7,16 @@ export type DaySlots = { slots: TimeBlock[]; hasPrevDay: boolean; hasNextDay: bo
 export class ShowAvailableSlotsForDayUseCase {
   constructor(private readonly plannerService: PlannerService) {}
 
-  async execute(day: Date, now: Date): Promise<Result<DaySlots>> {
-    const isSameDay = now.toISOString().slice(0, 10) === day.toISOString().slice(0, 10)
+  async execute(
+    day: Date,
+    now: Date,
+    endOfDay?: Date,
+    isSameDayParam?: boolean
+  ): Promise<Result<DaySlots>> {
+    const isSameDay = isSameDayParam
 
     const from = isSameDay ? now : day
-    const to = new Date(new Date(day).setUTCHours(24))
+    const to = endOfDay || new Date(new Date(day).setUTCHours(24))
 
     const availableSlots = await this.plannerService.findAvailableSlots(from, to)
 
