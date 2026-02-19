@@ -6,7 +6,6 @@ import {
   PlannerService,
   Result,
   ScheduleTimeBlockForTask,
-  ShowAvailableSlotsForDayUseCase,
   TaskDetails as CoreTaskDetails,
   UserActionsService,
   VoidResult,
@@ -22,6 +21,8 @@ import { KnexTaskRepository } from './persistence/repositories/task.repo.js'
 import { KnexTimeBlockRepository } from './persistence/repositories/time-block.repo.js'
 
 export type TaskDetails = CoreTaskDetails & { timeBlock?: string; day?: string }
+
+export type DaySlots = { slots: string[]; hasPrevDay: boolean; hasNextDay: boolean }
 
 export class CLIAdapter {
   private _userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -111,7 +112,7 @@ export class CLIAdapter {
     )
   }
 
-  async showAvailableSlots(day: string) {
+  async showAvailableSlots(day: string): Promise<Result<DaySlots>> {
     const parsedDay = this.parseDay(day)
 
     if (!parsedDay.success) return parsedDay
@@ -120,24 +121,25 @@ export class CLIAdapter {
 
     const dayUTC = fromZonedTime(parsedDay.value, userTimeZone)
 
-    const result = await new ShowAvailableSlotsForDayUseCase(this.plannerService).execute(
-      dayUTC,
-      fromZonedTime(new Date(), this._userTimeZone),
-      fromZonedTime(new Date(parsedDay.value).setHours(24), userTimeZone),
-      isSameDay(parsedDay.value, new Date())
-    )
+    const isSameDayValue = isSameDay(parsedDay.value, new Date())
+    const from = isSameDayValue ? fromZonedTime(new Date(), this._userTimeZone) : dayUTC
+    const to = fromZonedTime(new Date(parsedDay.value).setHours(24), userTimeZone)
 
-    if (!result.success) return result
+    const availableSlots = await this.plannerService.findAvailableSlots(from, to)
 
-    const formatedSlots = result.value.slots.map((slot) =>
+    if (!availableSlots.success) return availableSlots
+
+    const formatedSlots = availableSlots.value.map((slot) =>
       this.formatTimeBlock(slot.startTime, slot.endTime)
     )
 
     return {
-      success: true,
-      value: Object.assign(result.value, {
+      value: {
         slots: formatedSlots,
-      }),
+        hasPrevDay: !isSameDayValue,
+        hasNextDay: !this.plannerService.isLastDayToSchedule(dayUTC),
+      },
+      success: true,
     }
   }
 
