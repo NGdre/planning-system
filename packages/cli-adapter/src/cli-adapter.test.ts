@@ -103,6 +103,30 @@ describe('CLIAdapter.showAvailableSlots', () => {
     expect(mockPlannerService.isLastDayToSchedule).toHaveBeenCalledWith(parsedDate)
   })
 
+  test('if isLastDayToSchedule = true, then hasNextDay = false', async () => {
+    const parsedDate = new Date('2025-03-21T21:00:00Z')
+    vi.spyOn(adapter, 'parseDay').mockReturnValue({ success: true, value: parsedDate })
+
+    const mockSlots = [
+      { startTime: new Date('2025-03-21T21:00:00Z'), endTime: new Date('2025-03-22T21:00:00Z') },
+    ]
+
+    vi.mocked(mockPlannerService.findAvailableSlots).mockResolvedValue({
+      success: true,
+      value: mockSlots,
+    })
+
+    vi.mocked(mockPlannerService.isLastDayToSchedule).mockReturnValue(true)
+
+    const result = await adapter.showAvailableSlots('22.03.2025')
+
+    expect(result.success).toBe(true)
+
+    if (result.success) expect(result.value.hasNextDay).toBe(false)
+
+    expect(mockPlannerService.isLastDayToSchedule).toHaveBeenCalledWith(parsedDate)
+  })
+
   test('must handle the case where findAvailableSlots returns an empty array', async () => {
     vi.spyOn(adapter, 'parseDay').mockReturnValue({ success: true, value: new Date('2025-03-20') })
     vi.mocked(mockPlannerService.findAvailableSlots).mockResolvedValue({
