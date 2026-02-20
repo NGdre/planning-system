@@ -105,11 +105,18 @@ export class CLIAdapter {
       }
     }
 
+    const startTimeUTC = createStartTime(dayUTC)
+    const endTimeUTC = createEndTime(dayUTC)
+
+    if (endTimeUTC < startTimeUTC) {
+      endTimeUTC.setUTCDate(endTimeUTC.getUTCDate() + 1)
+    }
+
     return await new ScheduleTimeBlockForTask(
       this.plannerService,
       this.taskRepo,
       this.timeBlockRepo
-    ).execute(taskId, createStartTime(dayUTC), createEndTime(dayUTC))
+    ).execute(taskId, startTimeUTC, endTimeUTC)
   }
 
   async showAvailableSlots(day: string): Promise<Result<DaySlots>> {
