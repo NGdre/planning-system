@@ -105,11 +105,11 @@ export class CLIAdapter {
       }
     }
 
-    return await new ScheduleTimeBlockForTask(this.plannerService).execute(
-      taskId,
-      createStartTime(dayUTC),
-      createEndTime(dayUTC)
-    )
+    return await new ScheduleTimeBlockForTask(
+      this.plannerService,
+      this.taskRepo,
+      this.timeBlockRepo
+    ).execute(taskId, createStartTime(dayUTC), createEndTime(dayUTC))
   }
 
   async showAvailableSlots(day: string): Promise<Result<DaySlots>> {
