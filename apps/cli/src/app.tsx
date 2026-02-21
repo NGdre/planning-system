@@ -4,6 +4,7 @@ import NewTaskMenu from './components/menu/NewTaskMenu.js'
 import { TaskList } from './components/task/TaskList.js'
 import TaskMenu from './components/menu/TaskMenu.js'
 import { TaskStore } from './components/task/TaskStore.js'
+import { ScheduleTask } from './components/task/ScheduleTask.js'
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
         <Route route="new-task" component={<NewTaskMenu />} />
         <Route route="task-menu" component={<TaskMenu />} />
         <Route route="all-tasks" component={<TaskList />} />
+        <Route route="schedule-task" component={<ScheduleTask />} />
       </Router>
     </TaskStore>
   )

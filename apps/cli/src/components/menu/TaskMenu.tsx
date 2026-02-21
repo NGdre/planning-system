@@ -1,12 +1,18 @@
-import { TaskAction, TaskDetails } from '@planning-system/core'
+import { TaskDetails } from '@planning-system/cli-adapter'
+import { TaskAction } from '@planning-system/core'
 import { Box, Text } from 'ink'
 import SelectInput from 'ink-select-input'
 import { useEffect, useState } from 'react'
 import { cliAdapter } from '../../cli.js'
-import { WithNavigationKeys } from '../router/Router.js'
+import { useRouter, WithNavigationKeys } from '../router/Router.js'
 import { useTaskStore } from '../task/TaskStore.js'
+import { DateTime } from '../ui/DateTime.js'
 
-const selectTaskMenuItems = (availableActions: TaskAction[]) => {
+const selectTaskMenuItems = (taskDetails: TaskDetails | null) => {
+  if (!taskDetails) return []
+
+  const availableActions = taskDetails.taskActions
+
   const allTaskMenuItems = [
     {
       label: 'Начать задачу',
@@ -17,7 +23,10 @@ const selectTaskMenuItems = (availableActions: TaskAction[]) => {
       value: TaskAction.EDIT,
     },
     {
-      label: 'Запланировать время',
+      label:
+        taskDetails.status === 'scheduled'
+          ? 'Перенести запланированое время'
+          : 'Запланировать время',
       value: TaskAction.SCHEDULE,
     },
     {
@@ -38,17 +47,26 @@ const selectTaskMenuItems = (availableActions: TaskAction[]) => {
 }
 
 export default function TaskMenu() {
-  const handleSelect = async () => {}
+  const { navigate } = useRouter()
   const { selectedTaskId } = useTaskStore()
   const [taskDetails, setTaskDetails] = useState<TaskDetails | null>(null)
 
   useEffect(() => {
     const fetchTaskDetails = async () => {
-      if (selectedTaskId !== null) setTaskDetails(await cliAdapter.getSpecificTask(selectedTaskId))
+      if (selectedTaskId !== null) {
+        const result = await cliAdapter.getSpecificTask(selectedTaskId)
+        if (result.success) setTaskDetails(result.value)
+      }
     }
 
     fetchTaskDetails()
   }, [selectedTaskId])
+
+  const handleSelect = async (item: { label: string; value: TaskAction }) => {
+    if (item.value === TaskAction.SCHEDULE) {
+      navigate('schedule-task')
+    }
+  }
 
   return (
     <WithNavigationKeys>
@@ -60,11 +78,10 @@ export default function TaskMenu() {
         <Text dimColor color={'cyan'}>
           Статус: {taskDetails?.status}
         </Text>
+        {taskDetails?.day && <DateTime>{taskDetails.day}</DateTime>}
+        {taskDetails?.timeBlock && <DateTime>{taskDetails.timeBlock}</DateTime>}
       </Box>
-      <SelectInput
-        items={selectTaskMenuItems(taskDetails?.taskActions || [])}
-        onSelect={handleSelect}
-      />
+      <SelectInput items={selectTaskMenuItems(taskDetails)} onSelect={handleSelect} />
     </WithNavigationKeys>
   )
 }
