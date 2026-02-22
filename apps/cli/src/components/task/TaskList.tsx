@@ -26,7 +26,10 @@ export function TaskList() {
         renderItem={({ item, index, isSelected, isVisible }) => (
           <TaskRenderer index={index} isSelected={isSelected} isVisible={isVisible} item={item} />
         )}
-        additionalHints=" | b - Назад"
+        additionalHints={[
+          { keys: 'b', description: 'Назад' },
+          { keys: 'm', description: 'В главное меню' },
+        ]}
         onSelect={(item) => {
           setSelectedTaskId(item.id)
           navigate('task-menu')

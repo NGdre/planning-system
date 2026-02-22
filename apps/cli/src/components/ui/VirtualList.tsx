@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, ReactNode } from 'react'
 import { Text, Box, useInput, useStdout } from 'ink'
+import { CommandHelp, CommandItem } from './CommandHelp.js'
 
 export type VirtualListItem<T> = T & {
   id: string | number
@@ -35,7 +36,7 @@ export type VirtualListProps<T> = {
   autoHeight?: boolean
   /** Отступ от края терминала при autoHeight */
   terminalMargin?: number
-  additionalHints?: string
+  additionalHints?: CommandItem[]
 }
 
 export function VirtualList<T>({
@@ -50,7 +51,7 @@ export function VirtualList<T>({
   initialScrollOffset = 0,
   autoHeight = false,
   terminalMargin = 4,
-  additionalHints = '',
+  additionalHints = [],
 }: VirtualListProps<T>) {
   const [scrollOffset, setScrollOffset] = useState(initialScrollOffset)
   const [selectedIndex, setSelectedIndex] = useState(
@@ -161,6 +162,14 @@ export function VirtualList<T>({
     }
   })
 
+  const commands = [
+    { keys: '↑↓', description: 'Навигация' },
+    { keys: 'PgUp/PgDn', description: 'Быстрая прокрутка' },
+    { keys: 'Home/End', description: 'В начало/конец' },
+    ...(onSelect ? [{ keys: 'Enter', description: 'Выбрать' }] : []),
+    ...additionalHints,
+  ]
+
   // Видимый диапазон данных
   const visibleData = data.slice(scrollOffset, scrollOffset + terminalHeight)
 
@@ -218,11 +227,7 @@ export function VirtualList<T>({
       {/* Подсказки по управлению */}
       {showControlsHint && (
         <Box marginTop={1}>
-          <Text dimColor>
-            ↑↓ - Навигация | PgUp/PgDn - Быстрая прокрутка | Home/End - В начало/конец
-            {onSelect && ' | Enter - Выбрать'}
-            {additionalHints}
-          </Text>
+          <CommandHelp items={commands} />
         </Box>
       )}
     </Box>
