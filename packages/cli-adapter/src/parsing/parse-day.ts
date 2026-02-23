@@ -2,6 +2,7 @@ import { parseDayOfWeek } from './parse-day-of-week.js'
 import { parseDayOfMonth } from './parse-day-of-month.js'
 import { parseRelativeDay } from './parse-relative-day.js'
 import { parseExplicitDate } from './parse-explicit-date.js'
+import { parseOffsetToDate } from './parse-offset-to-date.js'
 
 /**
  * Determines the type of user input (weekday or day of month, for example)
@@ -14,6 +15,9 @@ import { parseExplicitDate } from './parse-explicit-date.js'
 export function parseDay(input: string, locale: string = 'ru'): Date | null {
   const trimmed = input.trim()
   if (!trimmed) return null
+
+  const offset = parseOffsetToDate(trimmed)
+  if (offset) return offset
 
   const relative = parseRelativeDay(trimmed)
   if (relative) return relative
