@@ -11,7 +11,7 @@ import {
   VoidResult,
 } from '@planning-system/core'
 import { ru } from 'date-fns/locale'
-import { isSameDay } from 'date-fns'
+import { differenceInCalendarDays, isSameDay } from 'date-fns'
 import { fromZonedTime, format, formatInTimeZone } from 'date-fns-tz'
 import { v4 as uuid } from 'uuid'
 import { parseDay } from './parsing/parse-day.js'
@@ -22,7 +22,12 @@ import { KnexTimeBlockRepository } from './persistence/repositories/time-block.r
 
 export type TaskDetails = CoreTaskDetails & { timeBlock?: string; day?: string }
 
-export type DaySlots = { slots: string[]; hasPrevDay: boolean; hasNextDay: boolean }
+export type DaySlots = {
+  formatedDay: string
+  slots: string[]
+  hasPrevDay: boolean
+  hasNextDay: boolean
+}
 
 export class CLIAdapter {
   private _userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -142,6 +147,7 @@ export class CLIAdapter {
 
     return {
       value: {
+        formatedDay: format(parsedDay.value, 'dd.MM.yy'),
         slots: formatedSlots,
         hasPrevDay: !isSameDayValue,
         hasNextDay: !this.plannerService.isLastDayToSchedule(dayUTC),
@@ -162,6 +168,17 @@ export class CLIAdapter {
     return {
       success: true,
       value: parsedDay,
+    }
+  }
+
+  parseDayToRelative(day: string): Result<number> {
+    const parsedDay = this.parseDay(day)
+
+    if (!parsedDay.success) return parsedDay
+
+    return {
+      success: true,
+      value: differenceInCalendarDays(parsedDay.value, new Date()),
     }
   }
 
