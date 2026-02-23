@@ -1,23 +1,31 @@
 import { Box, Text, useInput } from 'ink'
+import SelectInput from 'ink-select-input'
 import { useState } from 'react'
 import { cliAdapter } from '../../cli.js'
-import { ErrorMessage } from '../ui/ErrorMessage.js'
-import { useTaskStore } from './TaskStore.js'
-import { AvailableSlots, usePagination } from '../time-block/AvailableSlots.js'
-import SelectInput from 'ink-select-input'
-import PromptWithHints from '../ui/PromptWithHints.js'
 import { useRouter } from '../router/Router.js'
+import { AvailableSlots, useDayOffset } from '../time-block/AvailableSlots.js'
 import { DateTime } from '../ui/DateTime.js'
+import { ErrorMessage } from '../ui/ErrorMessage.js'
+import PromptWithHints from '../ui/PromptWithHints.js'
+import { useTaskStore } from './TaskStore.js'
+
+const MENU_ITEMS = [
+  { value: 'PREV_DAY', label: 'Предыдущий день' },
+  { value: 'NEXT_DAY', label: 'Следующий день' },
+  { value: 'MANUAL_DAY', label: 'Ввести день вручную' },
+  { value: 'TIME_BLOCK', label: 'Выбрать блок времени' },
+  { value: 'DONE', label: 'Готово!' },
+]
 
 export function ScheduleTask() {
   const { selectedTaskId } = useTaskStore()
-  const [dayInput, setDayInput] = useState<string>('')
-  const [isScheduled, setIsScheduled] = useState<boolean>(false)
-  const [errorMessage, setErrorMessage] = useState<string>('')
-  const [isEditing, setIsEditing] = useState<boolean>(false)
+  const [manualDayInput, setManualDayInput] = useState('')
+  const [isScheduled, setIsScheduled] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
+  const [isPromptActive, setIsPromptActive] = useState(false)
   const [timeBlockInput, setTimeBlockInput] = useState('')
-  const [promptName, setPromptName] = useState<'TIME_BLOCK' | 'MANUAL_DAY' | null>(null)
-  const { page, setPage } = usePagination()
+  const [activePromptType, setActivePromptType] = useState<'TIME_BLOCK' | 'MANUAL_DAY' | null>(null)
+  const { dayOffset, setDayOffset } = useDayOffset()
   const { navigate } = useRouter()
 
   useInput((_input, key) => {
@@ -28,80 +36,61 @@ export function ScheduleTask() {
 
   const handleScheduleTask = async () => {
     const [startTime, endTime] = timeBlockInput.split('-')
+    if (!selectedTaskId) return
 
-    if (selectedTaskId) {
-      const result = await cliAdapter.schedule(selectedTaskId, `r${page}`, startTime, endTime)
-
-      if (result.success) {
-        setIsScheduled(true)
-      } else {
-        setErrorMessage(result.error)
-      }
+    const result = await cliAdapter.schedule(selectedTaskId, `r${dayOffset}`, startTime, endTime)
+    if (result.success) {
+      setIsScheduled(true)
+    } else {
+      setErrorMessage(result.error)
     }
   }
 
-  const menu = [
-    {
-      value: 'PREV_DAY',
-      label: 'Предыдущий день',
-    },
-    {
-      value: 'NEXT_DAY',
-      label: 'Следующий день',
-    },
-    {
-      value: 'MANUAL_DAY',
-      label: 'Ввести день вручную',
-    },
-    {
-      value: 'TIME_BLOCK',
-      label: 'Выбрать блок времени',
-    },
-    {
-      value: 'DONE',
-      label: 'Готово!',
-    },
-  ]
-
-  const handleMenuSelect = (item: { value: string; label: string }) => {
-    if (item.value === 'PREV_DAY') setPage(page - 1)
-    if (item.value === 'NEXT_DAY') setPage(page + 1)
-    if (item.value === 'TIME_BLOCK') {
-      setIsEditing(true)
-      setPromptName('TIME_BLOCK')
-    }
-    if (item.value === 'MANUAL_DAY') {
-      setIsEditing(true)
-      setPromptName('MANUAL_DAY')
-    }
-    if (item.value === 'DONE') {
-      handleScheduleTask()
+  const handleMenuSelect = (item: (typeof MENU_ITEMS)[number]) => {
+    switch (item.value) {
+      case 'PREV_DAY':
+        setDayOffset(dayOffset - 1)
+        break
+      case 'NEXT_DAY':
+        setDayOffset(dayOffset + 1)
+        break
+      case 'TIME_BLOCK':
+        setIsPromptActive(true)
+        setActivePromptType('TIME_BLOCK')
+        break
+      case 'MANUAL_DAY':
+        setIsPromptActive(true)
+        setActivePromptType('MANUAL_DAY')
+        break
+      case 'DONE':
+        handleScheduleTask()
+        break
     }
   }
 
-  if (isScheduled)
+  if (isScheduled) {
     return (
       <Box flexDirection="column">
         <Text>Задача запланирована!</Text>
         <Text>Нажмите Enter, чтобы вернуться в главное меню</Text>
       </Box>
     )
+  }
 
-  if (isEditing)
+  if (isPromptActive) {
     return (
       <Box flexDirection="column">
-        {promptName === 'MANUAL_DAY' && (
+        {activePromptType === 'MANUAL_DAY' && (
           <PromptWithHints
-            value={dayInput}
-            onChange={setDayInput}
+            value={manualDayInput}
+            onChange={setManualDayInput}
             label="Введите день: "
             onSubmit={() => {
-              const parsedDay = cliAdapter.parseDayToRelative(dayInput)
-
+              const parsedDay = cliAdapter.parseDayToRelative(manualDayInput)
               if (parsedDay.success) {
-                setPage(parsedDay.value)
-                setDayInput('')
-                setIsEditing(false)
+                setDayOffset(parsedDay.value)
+                setManualDayInput('')
+                setIsPromptActive(false)
               } else {
                 setErrorMessage(parsedDay.error)
               }
@@ -109,13 +98,13 @@ export function ScheduleTask() {
           />
         )}
 
-        {promptName === 'TIME_BLOCK' && (
+        {activePromptType === 'TIME_BLOCK' && (
           <PromptWithHints
             value={timeBlockInput}
             onChange={setTimeBlockInput}
             label="Введите блок времени: "
             onSubmit={() => {
-              setIsEditing(false)
+              setIsPromptActive(false)
             }}
           />
         )}
@@ -123,18 +112,17 @@ export function ScheduleTask() {
         {errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>}
       </Box>
     )
+  }
 
   return (
     <Box flexDirection="column">
       {timeBlockInput && (
         <Text>
-          Блок времени:
-          <DateTime>{timeBlockInput}</DateTime>
+          Блок времени: <DateTime>{timeBlockInput}</DateTime>
         </Text>
       )}
-      <AvailableSlots relativeDay={page} onError={(err) => setErrorMessage(err)} />
-      <SelectInput items={menu} onSelect={handleMenuSelect} />
-
+      <AvailableSlots dayOffset={dayOffset} onError={setErrorMessage} />
+      <SelectInput items={MENU_ITEMS} onSelect={handleMenuSelect} />
       {errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>}
     </Box>
   )
