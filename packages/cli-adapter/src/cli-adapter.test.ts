@@ -13,6 +13,7 @@ describe('CLIAdapter.showAvailableSlots', () => {
   const fakeNow = new Date('2025-03-20T12:00:00Z')
 
   beforeEach(() => {
+    process.env.TZ = 'Europe/Moscow'
     vi.useFakeTimers()
     vi.setSystemTime(fakeNow)
 
@@ -27,8 +28,6 @@ describe('CLIAdapter.showAvailableSlots', () => {
       mockUserActionsService,
       mockPlannerService as PlannerService
     )
-
-    adapter.userTimeZone = 'Europe/Moscow'
   })
 
   afterEach(() => {
@@ -70,7 +69,7 @@ describe('CLIAdapter.showAvailableSlots', () => {
     expect(mockPlannerService.isLastDayToSchedule).toHaveBeenCalledWith(parsedDate)
   })
 
-  test("when there's no timeblocks for given day", async () => {
+  test('should return a full-day slot when no timeblocks are booked', async () => {
     const parsedDate = new Date('2025-03-21T21:00:00Z')
     vi.spyOn(adapter, 'parseDay').mockReturnValue({ success: true, value: parsedDate })
 
