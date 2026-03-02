@@ -12,13 +12,10 @@ export const setupTestDb = () => {
   })
 
   beforeEach(async () => {
-    const tables = await testDb.raw(
-      "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'knex_%'"
-    )
-
-    for (const table of tables) {
-      await testDb(table.name).truncate()
-    }
+    await testDb('interval').delete()
+    await testDb('session').delete()
+    await testDb('time_block').delete()
+    await testDb('task').delete()
   })
 
   afterAll(async () => {
