@@ -11,6 +11,7 @@ describe('UserActionsService', () => {
     }
 
     expect(new UserActionsService().getTaskActions(task)).toEqual([
+      TaskAction.START,
       TaskAction.SCHEDULE,
       TaskAction.EDIT,
       TaskAction.COMPLETE,

@@ -38,13 +38,19 @@ export class TaskEntity extends Entity implements BaseTask {
     this._status = 'scheduled'
   }
 
+  start() {
+    if (!this.canStart()) throw new Error('can not start task')
+
+    this._status = 'in_progress'
+  }
+
   canSchedule() {
     if (['draft', 'scheduled'].includes(this.status)) return true
     return false
   }
 
   canStart() {
-    if (this.status === 'scheduled') return true
+    if (['draft', 'scheduled'].includes(this.status)) return true
     return false
   }
 
