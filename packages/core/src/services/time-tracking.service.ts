@@ -128,6 +128,21 @@ export class TimeTrackingService {
     }
   }
 
+  /**
+   * Calculates total work time in minutes for closed intervals
+   * @param session - The DTO containing session data.
+   * @returns total work time in minutes
+   */
+  getTotalWorkTime(session: SessionDTO): number {
+    const totalMs = session.intervals.reduce((total, interval) => {
+      if (interval.type === 'break' || interval.endTime === null) return total
+
+      return total + interval.endTime - interval.startTime
+    }, 0)
+
+    return Math.floor(totalMs / 60000)
+  }
+
   private async findActiveSession(): Promise<Result<SessionDTO>> {
     try {
       const sessionDTO = await this.sessionRepository.findActive()

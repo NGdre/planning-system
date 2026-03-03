@@ -18,6 +18,20 @@ describe('TimeTrackingService', () => {
 
   let fakeSession: SessionEntity
 
+  const BASE_TIME = 1_704_110_400_000 // 2024-01-01T10:00:00Z
+  const MINUTE = 60_000
+
+  const createSession = (overrides?: Partial<SessionDTO>): SessionDTO => ({
+    id: 'sess-456',
+    taskId: null,
+    timeBlockId: null,
+    status: 'completed',
+    intervals: [],
+    startTime: BASE_TIME,
+    endTime: null,
+    ...overrides,
+  })
+
   beforeEach(() => {
     vi.clearAllMocks()
 
@@ -229,6 +243,74 @@ describe('TimeTrackingService', () => {
 
       expect(result.success).toBe(false)
       if (!result.success) expect(result.error).toBe('DB error')
+    })
+  })
+
+  describe('getTotalWorkTime', () => {
+    it('should return correct time for completed session with break', () => {
+      const session = createSession({
+        intervals: [
+          {
+            sessionId: 'sess-456',
+            type: 'work',
+            startTime: BASE_TIME,
+            endTime: BASE_TIME + 20 * MINUTE,
+          },
+          {
+            sessionId: 'sess-456',
+            type: 'break',
+            startTime: BASE_TIME + 20 * MINUTE,
+            endTime: BASE_TIME + 30 * MINUTE,
+          },
+          {
+            sessionId: 'sess-456',
+            type: 'work',
+            startTime: BASE_TIME + 30 * MINUTE,
+            endTime: BASE_TIME + 60 * MINUTE,
+          },
+        ],
+      })
+      expect(service.getTotalWorkTime(session)).toBe(50)
+    })
+
+    it('should return correct time for completed session without breaks', () => {
+      const session = createSession({
+        intervals: [
+          {
+            sessionId: 'sess-456',
+            type: 'work',
+            startTime: BASE_TIME,
+            endTime: BASE_TIME + 60 * MINUTE,
+          },
+        ],
+      })
+      expect(service.getTotalWorkTime(session)).toBe(60)
+    })
+
+    it('should return correct time for active session with break and open interval', () => {
+      const session = createSession({
+        intervals: [
+          {
+            sessionId: 'sess-456',
+            type: 'work',
+            startTime: BASE_TIME,
+            endTime: BASE_TIME + 20 * MINUTE,
+          },
+          {
+            sessionId: 'sess-456',
+            type: 'break',
+            startTime: BASE_TIME + 20 * MINUTE,
+            endTime: BASE_TIME + 30 * MINUTE,
+          },
+          {
+            sessionId: 'sess-456',
+            type: 'work',
+            startTime: BASE_TIME + 30 * MINUTE,
+            endTime: null,
+          },
+        ],
+      })
+      expect(service.getTotalWorkTime(session)).toBe(20)
     })
   })
 })
