@@ -1,22 +1,31 @@
 import {
+  TaskDetails as CoreTaskDetails,
   CreateTaskInput,
   CreateTaskUseCase,
+  FindAllSessionUseCase,
   GetSpecificTaskUseCase,
   ListTasksUseCase,
+  PauseSessionUseCase,
   PlannerService,
   Result,
+  ResumeSessionUseCase,
   ScheduleTimeBlockForTask,
-  TaskDetails as CoreTaskDetails,
+  StartFreeSessionUseCase,
+  StartTaskSessionUseCase,
+  StopSessionUseCase,
+  TaskService,
+  TimeTrackingService,
   UserActionsService,
   VoidResult,
 } from '@planning-system/core'
-import { ru } from 'date-fns/locale'
 import { differenceInCalendarDays, isSameDay } from 'date-fns'
-import { fromZonedTime, format, formatInTimeZone } from 'date-fns-tz'
+import { format, formatInTimeZone, fromZonedTime } from 'date-fns-tz'
+import { ru } from 'date-fns/locale'
 import { v4 as uuid } from 'uuid'
 import { parseDay } from './parsing/parse-day.js'
 import { parseTimeInZone } from './parsing/parse-time-in-zone.js'
 import { DatabaseConnection } from './persistence/db.js'
+import { KnexSessionRepository } from './persistence/repositories/session.repo.js'
 import { KnexTaskRepository } from './persistence/repositories/task.repo.js'
 import { KnexTimeBlockRepository } from './persistence/repositories/time-block.repo.js'
 
@@ -36,7 +45,9 @@ export class CLIAdapter {
     private readonly taskRepo: KnexTaskRepository,
     private readonly timeBlockRepo: KnexTimeBlockRepository,
     private readonly userActionsService: UserActionsService,
-    private readonly plannerService: PlannerService
+    private readonly plannerService: PlannerService,
+    private readonly timeTrackingService: TimeTrackingService,
+    private readonly taskService: TaskService
   ) {}
 
   set userTimeZone(tz: string) {
@@ -47,10 +58,20 @@ export class CLIAdapter {
     const db = await DatabaseConnection.getConnection()
     const taskRepo = new KnexTaskRepository(db)
     const timeBlockRepo = new KnexTimeBlockRepository(db)
+    const sessionRepo = new KnexSessionRepository(db)
     const userActionsService = new UserActionsService()
     const plannerService = new PlannerService(taskRepo, timeBlockRepo, uuid)
+    const timeTrackingService = new TimeTrackingService(sessionRepo, uuid)
+    const taskService = new TaskService(taskRepo)
 
-    return new CLIAdapter(taskRepo, timeBlockRepo, userActionsService, plannerService)
+    return new CLIAdapter(
+      taskRepo,
+      timeBlockRepo,
+      userActionsService,
+      plannerService,
+      timeTrackingService,
+      taskService
+    )
   }
 
   async createTask(input: CreateTaskInput) {
@@ -180,6 +201,34 @@ export class CLIAdapter {
       success: true,
       value: differenceInCalendarDays(parsedDay.value, new Date()),
     }
+  }
+
+  startTaskSession(taskId: string) {
+    return new StartTaskSessionUseCase(
+      this.timeBlockRepo,
+      this.taskService,
+      this.timeTrackingService
+    ).execute(taskId)
+  }
+
+  startFreeSession() {
+    return new StartFreeSessionUseCase(this.timeTrackingService).execute()
+  }
+
+  pauseSession() {
+    return new PauseSessionUseCase(this.timeTrackingService).execute()
+  }
+
+  resumeSession() {
+    return new ResumeSessionUseCase(this.timeTrackingService).execute()
+  }
+
+  stopSession() {
+    return new StopSessionUseCase(this.timeTrackingService).execute()
+  }
+
+  findAllSessions() {
+    return new FindAllSessionUseCase(this.timeTrackingService).execute()
   }
 
   private formatTimeBlock(startTime: Date, endTime: Date) {
