@@ -75,6 +75,34 @@ export class SessionEntity extends Entity {
     return this._endTime ? 'completed' : 'active'
   }
 
+  /**
+   * Checks if the session can be paused.
+   * @returns True if last interval is break type, otherwise false.
+   */
+  canPause(): boolean {
+    const last = this.currentInterval()
+
+    return last?.type === 'work'
+  }
+
+  /**
+   * Checks if the session can be resumed.
+   * @returns True if last interval is work type, otherwise false.
+   */
+  canResume(): boolean {
+    const last = this.currentInterval()
+
+    return last?.type === 'break'
+  }
+
+  /**
+   * Checks if the session can be stopped.
+   * @returns True if session is active, otherwise false.
+   */
+  canStop(): boolean {
+    return this.status === 'active'
+  }
+
   pause(): void {
     this.assertActive()
     const last = this.currentInterval()

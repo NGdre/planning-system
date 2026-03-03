@@ -1,6 +1,7 @@
 import { describe, test, expect } from 'vitest'
-import { TaskAction, UserActionsService } from './user-actions.service'
-import { TaskDTO } from 'packages/core/dist'
+import { SessionAction, TaskAction, UserActionsService } from './user-actions.service'
+import { TaskDTO } from '../entities/task.entity'
+import { SessionDTO } from '../entities/session.entity'
 
 describe('UserActionsService', () => {
   test('task actions when status is draft', () => {
@@ -66,5 +67,88 @@ describe('UserActionsService', () => {
     }
 
     expect(new UserActionsService().getTaskActions(task)).toEqual([])
+  })
+
+  test('session action when session is paused', () => {
+    const sessionStartTime = new Date('2024-01-01T10:00:00Z')
+    const firstIntervalEndTime = new Date(sessionStartTime.getTime() + 20 * 60 * 1000)
+
+    const session: SessionDTO = {
+      id: 'sess-456',
+      taskId: null,
+      timeBlockId: null,
+      status: 'active',
+      intervals: [
+        {
+          sessionId: 'sess-456',
+          type: 'work',
+          startTime: sessionStartTime.getTime(),
+          endTime: firstIntervalEndTime.getTime(),
+        },
+        {
+          sessionId: 'sess-456',
+          type: 'break',
+          startTime: firstIntervalEndTime.getTime(),
+          endTime: null,
+        },
+      ],
+      startTime: sessionStartTime.getTime(),
+      endTime: null,
+    }
+
+    expect(new UserActionsService().getSessionActions(session)).toEqual([
+      SessionAction.RESUME,
+      SessionAction.STOP,
+    ])
+  })
+
+  test('session action when session is active and is not paused', () => {
+    const sessionStartTime = new Date('2024-01-01T10:00:00Z')
+
+    const session: SessionDTO = {
+      id: 'sess-456',
+      taskId: null,
+      timeBlockId: null,
+      status: 'active',
+      intervals: [
+        {
+          sessionId: 'sess-456',
+          type: 'work',
+          startTime: sessionStartTime.getTime(),
+          endTime: null,
+        },
+      ],
+      startTime: sessionStartTime.getTime(),
+      endTime: null,
+    }
+
+    expect(new UserActionsService().getSessionActions(session)).toEqual([
+      SessionAction.PAUSE,
+      SessionAction.STOP,
+    ])
+  })
+
+  test('session action when session is completed', () => {
+    const sessionStartTime = new Date('2024-01-01T10:00:00Z')
+    const sessionEndTime = new Date(sessionStartTime.getTime() + 20 * 60 * 1000)
+
+    const session: SessionDTO = {
+      id: 'sess-456',
+      taskId: null,
+      timeBlockId: null,
+      status: 'completed',
+      intervals: [
+        {
+          sessionId: 'sess-456',
+          type: 'work',
+          startTime: sessionStartTime.getTime(),
+          endTime: sessionEndTime.getTime(),
+        },
+      ],
+      startTime: sessionStartTime.getTime(),
+      endTime: sessionEndTime.getTime(),
+    }
+
+    expect(new UserActionsService().getSessionActions(session)).toEqual([])
   })
 })

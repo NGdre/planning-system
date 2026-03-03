@@ -1,3 +1,4 @@
+import { SessionDTO, SessionEntity } from '../entities/session.entity.js'
 import { TaskDTO, TaskEntity } from '../entities/task.entity.js'
 
 export enum TaskAction {
@@ -7,6 +8,12 @@ export enum TaskAction {
   CANCEL = 'CANCEL',
   COMPLETE = 'COMPLETE',
   DELETE = 'DELETE',
+}
+
+export enum SessionAction {
+  PAUSE = 'PAUSE',
+  RESUME = 'RESUME',
+  STOP = 'STOP',
 }
 
 export class UserActionsService {
@@ -20,6 +27,17 @@ export class UserActionsService {
     if (taskEntity.canCancel()) actions.push(TaskAction.CANCEL)
     if (taskEntity.canComplete()) actions.push(TaskAction.COMPLETE)
     if (taskEntity.canDelete()) actions.push(TaskAction.DELETE)
+
+    return actions
+  }
+
+  getSessionActions(session: SessionDTO) {
+    const sessionEntity = SessionEntity.restore(session)
+    const actions: SessionAction[] = []
+
+    if (sessionEntity.canResume()) actions.push(SessionAction.RESUME)
+    if (sessionEntity.canPause()) actions.push(SessionAction.PAUSE)
+    if (sessionEntity.canStop()) actions.push(SessionAction.STOP)
 
     return actions
   }
