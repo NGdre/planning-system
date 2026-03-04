@@ -1,7 +1,25 @@
-import { TimeBlockRepository } from '../ports/repository.port.js'
+import { SessionDTO } from '../entities/session.entity.js'
+import { SessionRepository, TaskRepository, TimeBlockRepository } from '../ports/repository.port.js'
 import { TaskService } from '../services/task.service.js'
 import { TimeTrackingService } from '../services/time-tracking.service.js'
-import { VoidResult } from '../types.js'
+import { Result, VoidResult } from '../types.js'
+
+/**
+ * Detailed session information, enriched with related data and computed fields.
+ */
+export interface SessionDetails extends SessionDTO {
+  /** Title of the associated task for task sessions. */
+  taskTitle?: string
+  /** Time block interval if a time block is associated for scheduled sessions. */
+  timeBlock?: {
+    /** Start timestamp of the time block. */
+    startTime: number
+    /** End timestamp of the time block. */
+    endTime: number
+  }
+  /** Total work time (in minutes) calculated from work intervals. */
+  totalWorkTime: number
+}
 
 /**
  * Use case for starting a session associated with a specific task.
@@ -132,7 +150,7 @@ export class StopSessionUseCase {
 export class FindAllSessionUseCase {
   /**
    * Creates an instance of FindAllSessionUseCase.
-   * @param  timeTrackingService - Service to manage time tracking sessions.
+   * @param timeTrackingService - Service to manage time tracking sessions.
    */
   constructor(private readonly timeTrackingService: TimeTrackingService) {}
 
@@ -142,5 +160,82 @@ export class FindAllSessionUseCase {
    */
   async execute(): Promise<VoidResult> {
     return await this.timeTrackingService.findAllSessions()
+  }
+}
+
+/**
+ * Use case for fetching detailed information about a specific session.
+ * Combines session data with task title, time block details, and computed total work time.
+ */
+export class FetchSessionDetailsUseCase {
+  /**
+   * Creates an instance of FetchSessionDetailsUseCase.
+   * @param sessionRepository - Repository to access session data.
+   * @param taskRepository - Repository to access task data.
+   * @param timeBlockRepository - Repository to find time blocks by task ID.
+   * @param timeTrackingService - Service to manage time tracking sessions.
+   */
+  constructor(
+    private readonly sessionRepository: SessionRepository,
+    private readonly taskRepository: TaskRepository,
+    private readonly timeBlockRepository: TimeBlockRepository,
+    private readonly timeTrackingService: TimeTrackingService
+  ) {}
+
+  /**
+   * Executes the use case to fetch session details.
+   * @param sessionId - Unique identifier of the session to retrieve.
+   * @returns A promise that resolves to a Result object containing either the session details on success,
+   * or an error message on failure.
+   */
+  async execute(sessionId: string): Promise<Result<SessionDetails>> {
+    try {
+      const session = await this.sessionRepository.findById(sessionId)
+
+      if (!session)
+        return {
+          success: false,
+          error: 'Failed to find session with id: ' + sessionId,
+        }
+
+      let taskTitle
+
+      if (session.taskId) {
+        const task = await this.taskRepository.findById(session.taskId)
+
+        if (task) taskTitle = task.title
+      }
+
+      let timeBlockInterval
+
+      if (session.timeBlockId) {
+        const timeBlock = await this.timeBlockRepository.findById(session.timeBlockId)
+
+        if (timeBlock)
+          timeBlockInterval = {
+            startTime: timeBlock.startTime,
+            endTime: timeBlock.endTime,
+          }
+      }
+
+      const sessionDetails = {
+        taskTitle,
+        timeBlock: timeBlockInterval,
+        totalWorkTime: this.timeTrackingService.getTotalWorkTime(session),
+        ...session,
+      }
+
+      return {
+        success: true,
+        value: sessionDetails,
+      }
+    } catch (error) {
+      console.error('Failed to fetch session details:', error)
+
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
+    }
   }
 }
