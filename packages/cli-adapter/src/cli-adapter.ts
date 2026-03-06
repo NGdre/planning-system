@@ -2,6 +2,7 @@ import {
   TaskDetails as CoreTaskDetails,
   CreateTaskInput,
   CreateTaskUseCase,
+  FetchSessionDetailsUseCase,
   FindAllSessionUseCase,
   GetSpecificTaskUseCase,
   ListTasksUseCase,
@@ -10,6 +11,7 @@ import {
   Result,
   ResumeSessionUseCase,
   ScheduleTimeBlockForTask,
+  SessionDetails,
   StartFreeSessionUseCase,
   StartTaskSessionUseCase,
   StopSessionUseCase,
@@ -38,12 +40,23 @@ export type DaySlots = {
   hasNextDay: boolean
 }
 
+export type FormatedSessionDetails = SessionDetails & {
+  formated: {
+    startTime: string
+    endTime: string | null
+    timeBlock: string | null
+    intervals: string[]
+    lastWorkIntervalStart: string
+  }
+}
+
 export class CLIAdapter {
   private _userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
 
   constructor(
     private readonly taskRepo: KnexTaskRepository,
     private readonly timeBlockRepo: KnexTimeBlockRepository,
+    private readonly sessionRepo: KnexSessionRepository,
     private readonly userActionsService: UserActionsService,
     private readonly plannerService: PlannerService,
     private readonly timeTrackingService: TimeTrackingService,
@@ -67,6 +80,7 @@ export class CLIAdapter {
     return new CLIAdapter(
       taskRepo,
       timeBlockRepo,
+      sessionRepo,
       userActionsService,
       plannerService,
       timeTrackingService,
@@ -231,8 +245,60 @@ export class CLIAdapter {
     return new FindAllSessionUseCase(this.timeTrackingService).execute()
   }
 
-  private formatTimeBlock(startTime: Date, endTime: Date) {
+  async fetchSessionDetails(sessionId: string): Promise<Result<FormatedSessionDetails>> {
+    const result = await new FetchSessionDetailsUseCase(
+      this.sessionRepo,
+      this.taskRepo,
+      this.timeBlockRepo,
+      this.timeTrackingService
+    ).execute(sessionId)
+
+    if (!result.success) return result
+
+    const { timeBlock, startTime, endTime, intervals } = result.value
+
+    const formatedIntervals = intervals
+      .filter((interval) => interval.type === 'work')
+      .map((interval) =>
+        this.formatTimeBlock(
+          new Date(interval.startTime),
+          interval.endTime ? new Date(interval.endTime) : undefined
+        )
+      )
+
+    // work interval exist if sessionId exist, so start is defined
+    const lastWorkInterval = intervals.findLast((interval) => interval.type === 'work')!
+
+    const lastWorkIntervalStart = formatInTimeZone(
+      lastWorkInterval.startTime,
+      this._userTimeZone,
+      'HH:mm'
+    )
+
+    const formated = {
+      startTime: formatInTimeZone(startTime, this._userTimeZone, 'HH:mm'),
+      endTime: endTime ? formatInTimeZone(endTime, this._userTimeZone, 'HH:mm') : null,
+      timeBlock: timeBlock
+        ? this.formatTimeBlock(new Date(timeBlock.startTime), new Date(timeBlock.endTime))
+        : null,
+      intervals: formatedIntervals,
+      lastWorkIntervalStart,
+    }
+
+    return {
+      success: true,
+      value: {
+        ...result.value,
+        formated,
+      },
+    }
+  }
+
+  private formatTimeBlock(startTime: Date, endTime?: Date) {
     const formatedStart = formatInTimeZone(startTime, this._userTimeZone, 'HH:mm')
+
+    if (endTime === undefined) return formatedStart + '-?'
+
     const formatedEnd = formatInTimeZone(endTime, this._userTimeZone, 'HH:mm')
 
     return formatedStart + '-' + (formatedEnd === '00:00' ? '24:00' : formatedEnd)

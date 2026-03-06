@@ -1,14 +1,25 @@
-import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, test, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { CLIAdapter } from './cli-adapter.js'
-import { PlannerService } from '@planning-system/core'
+import { PlannerService, FetchSessionDetailsUseCase } from '@planning-system/core'
 
-const mockTaskRepo = {} as never
-const mockTimeBlockRepo = {} as never
-const mockUserActionsService = {} as never
+vi.mock('@planning-system/core', async () => {
+  const actual = await vi.importActual('@planning-system/core')
+  return {
+    ...actual,
+    FetchSessionDetailsUseCase: vi.fn(),
+  }
+})
 
 describe('CLIAdapter.showAvailableSlots', () => {
   let mockPlannerService: PlannerService
   let adapter: CLIAdapter
+
+  const mockTaskRepo = {} as never
+  const mockTimeBlockRepo = {} as never
+  const mockSessionRepo = {} as never
+  const mockUserActionsService = {} as never
+  const mockTimeTrackingService = {} as never
+  const mockTaskService = {} as never
 
   const fakeNow = new Date('2025-03-20T12:00:00Z')
 
@@ -25,8 +36,11 @@ describe('CLIAdapter.showAvailableSlots', () => {
     adapter = new CLIAdapter(
       mockTaskRepo,
       mockTimeBlockRepo,
+      mockSessionRepo,
       mockUserActionsService,
-      mockPlannerService as PlannerService
+      mockPlannerService as PlannerService,
+      mockTimeTrackingService,
+      mockTaskService
     )
   })
 
@@ -159,5 +173,216 @@ describe('CLIAdapter.showAvailableSlots', () => {
 
     expect(result).toEqual(errorResult)
     expect(mockPlannerService.isLastDayToSchedule).not.toHaveBeenCalled()
+  })
+})
+
+describe('CLIAdapter.fetchSessionDetails', () => {
+  // Mock dependencies (only need to satisfy the constructor)
+  const mockTaskRepo = {} as never
+  const mockTimeBlockRepo = {} as never
+  const mockSessionRepo = {} as never
+  const mockUserActionsService = {} as never
+  const mockPlannerService = {} as never
+  const mockTimeTrackingService = {} as never
+  const mockTaskService = {} as never
+
+  let adapter: CLIAdapter
+  let mockFetchSessionDetailsExecute: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    process.env.TZ = 'Europe/Moscow' // UTC+3
+    vi.useFakeTimers()
+
+    adapter = new CLIAdapter(
+      mockTaskRepo,
+      mockTimeBlockRepo,
+      mockSessionRepo,
+      mockUserActionsService,
+      mockPlannerService,
+      mockTimeTrackingService,
+      mockTaskService
+    )
+
+    mockFetchSessionDetailsExecute = vi.fn()
+    // Use a regular function (not an arrow function) to be constructible
+    vi.mocked(FetchSessionDetailsUseCase).mockImplementation(function () {
+      return { execute: mockFetchSessionDetailsExecute }
+    })
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+  })
+
+  it('should return formatted session details on success with all fields', async () => {
+    const sessionId = 'session-123'
+    const mockUseCaseResult = {
+      success: true,
+      value: {
+        id: sessionId,
+        startTime: new Date('2023-10-01T10:00:00.000Z'),
+        endTime: new Date('2023-10-01T12:30:00.000Z'),
+        timeBlock: {
+          startTime: new Date('2023-10-01T10:00:00.000Z'),
+          endTime: new Date('2023-10-01T12:00:00.000Z'),
+        },
+        intervals: [
+          {
+            type: 'work',
+            startTime: '2023-10-01T10:00:00.000Z',
+            endTime: '2023-10-01T11:00:00.000Z',
+          },
+          {
+            type: 'break',
+            startTime: '2023-10-01T11:00:00.000Z',
+            endTime: '2023-10-01T11:15:00.000Z',
+          },
+          {
+            type: 'work',
+            startTime: '2023-10-01T11:15:00.000Z',
+            endTime: '2023-10-01T12:30:00.000Z',
+          },
+        ],
+      },
+    }
+
+    mockFetchSessionDetailsExecute.mockResolvedValue(mockUseCaseResult)
+
+    const result = await adapter.fetchSessionDetails(sessionId)
+
+    expect(result.success).toBe(true)
+    if (result.success)
+      expect(result.value).toEqual({
+        ...mockUseCaseResult.value,
+        formated: {
+          startTime: '13:00', // 10:00 UTC → 13:00 MSK
+          endTime: '15:30', // 12:30 UTC → 15:30 MSK
+          timeBlock: '13:00-15:00', // 10:00-12:00 UTC → 13:00-15:00 MSK
+          intervals: ['13:00-14:00', '14:15-15:30'],
+          lastWorkIntervalStart: '14:15', // 11:15 UTC → 14:15 MSK
+        },
+      })
+  })
+
+  it('should handle missing timeBlock', async () => {
+    const sessionId = 'session-123'
+    const mockUseCaseResult = {
+      success: true,
+      value: {
+        id: sessionId,
+        startTime: new Date('2023-10-01T10:00:00.000Z'),
+        endTime: new Date('2023-10-01T12:30:00.000Z'),
+        timeBlock: null,
+        intervals: [
+          {
+            type: 'work',
+            startTime: '2023-10-01T10:00:00.000Z',
+            endTime: '2023-10-01T12:30:00.000Z',
+          },
+        ],
+      },
+    }
+
+    mockFetchSessionDetailsExecute.mockResolvedValue(mockUseCaseResult)
+
+    const result = await adapter.fetchSessionDetails(sessionId)
+
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.value.formated.timeBlock).toBeNull()
+  })
+
+  it('should handle ongoing session with null endTime', async () => {
+    const sessionId = 'session-123'
+    const mockUseCaseResult = {
+      success: true,
+      value: {
+        id: sessionId,
+        startTime: new Date('2023-10-01T10:00:00.000Z'),
+        endTime: null,
+        timeBlock: {
+          startTime: new Date('2023-10-01T10:00:00.000Z'),
+          endTime: new Date('2023-10-01T12:00:00.000Z'),
+        },
+        intervals: [{ type: 'work', startTime: '2023-10-01T10:00:00.000Z', endTime: null }],
+      },
+    }
+
+    mockFetchSessionDetailsExecute.mockResolvedValue(mockUseCaseResult)
+
+    const result = await adapter.fetchSessionDetails(sessionId)
+
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.value.formated.endTime).toBeNull()
+      expect(result.value.formated.intervals).toEqual(['13:00-?'])
+      expect(result.value.formated.lastWorkIntervalStart).toEqual('13:00')
+    }
+  })
+
+  it('should only include work intervals in formatted intervals', async () => {
+    const sessionId = 'session-123'
+    const mockUseCaseResult = {
+      success: true,
+      value: {
+        id: sessionId,
+        startTime: new Date('2023-10-01T10:00:00.000Z'),
+        endTime: new Date('2023-10-01T14:00:00.000Z'),
+        timeBlock: null,
+        intervals: [
+          {
+            type: 'work',
+            startTime: '2023-10-01T10:00:00.000Z',
+            endTime: '2023-10-01T11:00:00.000Z',
+          },
+          {
+            type: 'break',
+            startTime: '2023-10-01T11:00:00.000Z',
+            endTime: '2023-10-01T11:30:00.000Z',
+          },
+          {
+            type: 'work',
+            startTime: '2023-10-01T11:30:00.000Z',
+            endTime: '2023-10-01T12:30:00.000Z',
+          },
+          {
+            type: 'work',
+            startTime: '2023-10-01T12:30:00.000Z',
+            endTime: '2023-10-01T13:30:00.000Z',
+          },
+          {
+            type: 'other',
+            startTime: '2023-10-01T13:30:00.000Z',
+            endTime: '2023-10-01T14:00:00.000Z',
+          },
+        ],
+      },
+    }
+
+    mockFetchSessionDetailsExecute.mockResolvedValue(mockUseCaseResult)
+
+    const result = await adapter.fetchSessionDetails(sessionId)
+
+    if (result.success)
+      expect(result.value.formated.intervals).toEqual([
+        '13:00-14:00', // 10:00-11:00 UTC
+        '14:30-15:30', // 11:30-12:30 UTC
+        '15:30-16:30', // 12:30-13:30 UTC
+      ])
+  })
+
+  it('should return failure result when use case fails', async () => {
+    const sessionId = 'invalid-id'
+    const mockUseCaseResult = {
+      success: false,
+      error: 'Session not found',
+    }
+
+    mockFetchSessionDetailsExecute.mockResolvedValue(mockUseCaseResult)
+
+    const result = await adapter.fetchSessionDetails(sessionId)
+
+    expect(result.success).toBe(false)
+    if (!result.success) expect(result.error).toBe('Session not found')
   })
 })
