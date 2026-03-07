@@ -1,5 +1,10 @@
+import {
+  IntervalDTO,
+  SessionDTO,
+  SessionRepository,
+  SessionWithTaskTitle,
+} from '@planning-system/core'
 import { Knex } from 'knex'
-import { SessionDTO, IntervalDTO, SessionRepository } from '@planning-system/core'
 
 export class KnexSessionRepository implements SessionRepository {
   constructor(private readonly db: Knex) {}
@@ -25,6 +30,39 @@ export class KnexSessionRepository implements SessionRepository {
     const sessionRows = await this.db('session').orderBy('startTime', 'desc')
 
     if (sessionRows.length === 0) return []
+
+    const sessionIds = sessionRows.map((row) => row.id)
+    const intervalRows = await this.db('interval')
+      .whereIn('sessionId', sessionIds)
+      .orderBy('startTime', 'asc')
+
+    const intervalsBySession = new Map<string, IntervalDTO[]>()
+
+    for (const row of intervalRows) {
+      const sessionId = row.sessionId
+
+      if (!intervalsBySession.has(sessionId)) {
+        intervalsBySession.set(sessionId, [])
+      }
+
+      intervalsBySession.get(sessionId)!.push(row)
+    }
+
+    return sessionRows.map((row) => ({
+      ...row,
+      intervals: intervalsBySession.get(row.id) || [],
+    }))
+  }
+
+  async findAllWithTasks(): Promise<SessionWithTaskTitle[]> {
+    const sessionRows = await this.db('session')
+      .leftJoin('task', 'task.id', '=', 'session.task_id')
+      .select('session.*', 'task.id as task_id', 'task.title as task_title')
+      .orderBy('startTime', 'desc')
+
+    if (sessionRows.length === 0) return []
+
+    // TODO: remove duplication
 
     const sessionIds = sessionRows.map((row) => row.id)
     const intervalRows = await this.db('interval')

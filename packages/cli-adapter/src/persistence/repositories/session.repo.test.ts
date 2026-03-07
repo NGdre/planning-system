@@ -222,6 +222,82 @@ describe('KnexSessionRepository', () => {
     })
   })
 
+  describe('findAllWithTasks', () => {
+    test('should return all sessions with intervals, ordered by startTime desc', async () => {
+      const baseTime = Date.now()
+      const session1: SessionDTO = {
+        id: 's1',
+        taskId: taskId1,
+        timeBlockId: timeBlockId1,
+        startTime: baseTime - 200000,
+        endTime: baseTime - 100000,
+        status: 'completed',
+        intervals: [
+          {
+            sessionId: 's1',
+            type: 'work',
+            startTime: baseTime - 200000,
+            endTime: baseTime - 150000,
+          },
+          {
+            sessionId: 's1',
+            type: 'break',
+            startTime: baseTime - 150000,
+            endTime: baseTime - 100000,
+          },
+        ],
+      }
+      const session2: SessionDTO = {
+        id: 's2',
+        taskId: taskId2,
+        timeBlockId: timeBlockId2,
+        startTime: baseTime - 100000,
+        endTime: baseTime,
+        status: 'completed',
+        intervals: [
+          {
+            sessionId: 's2',
+            type: 'work',
+            startTime: baseTime - 100000,
+            endTime: baseTime - 50000,
+          },
+          { sessionId: 's2', type: 'break', startTime: baseTime - 50000, endTime: baseTime },
+        ],
+      }
+      const session3: SessionDTO = {
+        id: 's3',
+        taskId: null,
+        timeBlockId: timeBlockId1,
+        startTime: baseTime,
+        endTime: null,
+        status: 'active',
+        intervals: [],
+      }
+
+      await sessionRepository.save(session1)
+      await sessionRepository.save(session2)
+      await sessionRepository.save(session3)
+
+      const all = await sessionRepository.findAllWithTasks()
+
+      expect(all).toHaveLength(3)
+      expect(all[0].id).toBe('s3')
+      expect(all[1].id).toBe('s2')
+      expect(all[2].id).toBe('s1')
+      expect(all[0].intervals).toEqual([])
+      expect(all[1].intervals).toEqual(session2.intervals)
+      expect(all[2].intervals).toEqual(session1.intervals)
+      expect(all[0].taskTitle).toBeNull()
+      expect(all[1].taskTitle).toBe('Task 2')
+      expect(all[2].taskTitle).toBe('Task 1')
+    })
+
+    test('should return empty array if no sessions', async () => {
+      const all = await sessionRepository.findAllWithTasks()
+      expect(all).toEqual([])
+    })
+  })
+
   describe('findActive', () => {
     test('should return active session with intervals', async () => {
       const activeSession: SessionDTO = {

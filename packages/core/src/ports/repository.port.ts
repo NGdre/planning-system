@@ -8,6 +8,8 @@ export interface TaskRepository {
   findById(id: string): Promise<TaskDTO | null>
 }
 
+export type SessionWithTaskTitle = SessionDTO & { taskTitle?: string }
+
 export interface TimeBlockRepository {
   save(timeBlock: TimeBlockDTO): Promise<void>
   findAll(): Promise<TimeBlockDTO[]>
@@ -19,6 +21,7 @@ export interface TimeBlockRepository {
 export interface SessionRepository {
   save(session: SessionDTO): Promise<void>
   findAll(): Promise<SessionDTO[]>
+  findAllWithTasks(): Promise<SessionWithTaskTitle[]>
   findById(id: string): Promise<SessionDTO | null>
   findByTaskId(taskId: string): Promise<SessionDTO | null>
   findByTimeBlockId(timeBlockId: string): Promise<SessionDTO | null>

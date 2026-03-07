@@ -21,6 +21,14 @@ export interface SessionDetails extends SessionDTO {
   totalWorkTime: number
 }
 
+export interface SessionWithTaskDTO extends SessionDTO {
+  /** Title of the associated task for task sessions. */
+  taskTitle?: string
+
+  /** Total work time (in minutes) calculated from work intervals. */
+  totalWorkTime: number
+}
+
 /**
  * Use case for starting a session associated with a specific task.
  * This involves starting the task itself and then beginning a time tracking session.
@@ -160,6 +168,52 @@ export class FindAllSessionUseCase {
    */
   async execute(): Promise<VoidResult> {
     return await this.timeTrackingService.findAllSessions()
+  }
+}
+
+/**
+ * Use case for fetching list items.
+ * Combines session data with task title and computed total work time.
+ */
+export class FindAllSessionListItemsUseCase {
+  /**
+   * Creates an instance of FindAllSessionListItemsUseCase.
+   * @param sessionRepository - Repository to access session data.
+   * @param timeTrackingService - Service to manage time tracking sessions.
+   */
+  constructor(
+    private readonly sessionRepository: SessionRepository,
+    private readonly timeTrackingService: TimeTrackingService
+  ) {}
+
+  /**
+   * Executes the use case to fetch session list items.
+   * @returns A promise that resolves to a Result object containing either the session details on success,
+   * or an error message on failure.
+   */
+  async execute(): Promise<Result<SessionWithTaskDTO[]>> {
+    try {
+      const sessions = await this.sessionRepository.findAllWithTasks()
+
+      const sessionListItems = sessions.map((session) => {
+        return {
+          ...session,
+          totalWorkTime: this.timeTrackingService.getTotalWorkTime(session),
+        }
+      })
+
+      return {
+        success: true,
+        value: sessionListItems,
+      }
+    } catch (error) {
+      console.error('Failed to fetch session list items:', error)
+
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
+    }
   }
 }
 

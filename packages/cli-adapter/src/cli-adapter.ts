@@ -3,6 +3,7 @@ import {
   CreateTaskInput,
   CreateTaskUseCase,
   FetchSessionDetailsUseCase,
+  FindAllSessionListItemsUseCase,
   FindAllSessionUseCase,
   GetSpecificTaskUseCase,
   ListTasksUseCase,
@@ -48,6 +49,13 @@ export type FormatedSessionDetails = SessionDetails & {
     intervals: string[]
     lastWorkIntervalStart: string
   }
+}
+
+export type SessionListItem = {
+  startTime: string
+  endTime: string | null
+  taskTitle?: string
+  totalWorkTime: number
 }
 
 export class CLIAdapter {
@@ -243,6 +251,36 @@ export class CLIAdapter {
 
   findAllSessions() {
     return new FindAllSessionUseCase(this.timeTrackingService).execute()
+  }
+
+  async findAllSessionsListItems(): Promise<Result<SessionListItem[]>> {
+    const result = await new FindAllSessionListItemsUseCase(
+      this.sessionRepo,
+      this.timeTrackingService
+    ).execute()
+
+    if (!result.success) return result
+
+    const formatedItems = result.value.map((item) => {
+      const { startTime, endTime, totalWorkTime, taskTitle } = item
+
+      return {
+        taskTitle,
+        totalWorkTime,
+        startTime: formatInTimeZone(startTime, this._userTimeZone, 'HH:mm'),
+        endTime: endTime ? formatInTimeZone(endTime, this._userTimeZone, 'HH:mm') : null,
+      }
+    })
+
+    return {
+      success: true,
+      value: formatedItems,
+    }
+
+    // const formatedItems = {
+    //   startTime: formatInTimeZone(startTime, this._userTimeZone, 'HH:mm'),
+    //   endTime: endTime ? formatInTimeZone(endTime, this._userTimeZone, 'HH:mm') : null,
+    // }
   }
 
   async fetchSessionDetails(sessionId?: string): Promise<Result<FormatedSessionDetails>> {
