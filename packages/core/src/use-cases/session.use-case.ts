@@ -184,13 +184,19 @@ export class FetchSessionDetailsUseCase {
 
   /**
    * Executes the use case to fetch session details.
-   * @param sessionId - Unique identifier of the session to retrieve.
+   * @param sessionId - Unique identifier of the session to retrieve. If there is no identifier,
+   * then active session is fetched
    * @returns A promise that resolves to a Result object containing either the session details on success,
    * or an error message on failure.
    */
-  async execute(sessionId: string): Promise<Result<SessionDetails>> {
+  async execute(sessionId?: string): Promise<Result<SessionDetails>> {
     try {
-      const session = await this.sessionRepository.findById(sessionId)
+      let session
+
+      if (sessionId) session = await this.sessionRepository.findById(sessionId)
+      else {
+        session = await this.sessionRepository.findActive()
+      }
 
       if (!session)
         return {

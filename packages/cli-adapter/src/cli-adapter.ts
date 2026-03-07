@@ -245,7 +245,7 @@ export class CLIAdapter {
     return new FindAllSessionUseCase(this.timeTrackingService).execute()
   }
 
-  async fetchSessionDetails(sessionId: string): Promise<Result<FormatedSessionDetails>> {
+  async fetchSessionDetails(sessionId?: string): Promise<Result<FormatedSessionDetails>> {
     const result = await new FetchSessionDetailsUseCase(
       this.sessionRepo,
       this.taskRepo,
