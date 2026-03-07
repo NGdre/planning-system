@@ -5,6 +5,7 @@ import { TaskList } from './components/task/TaskList.js'
 import TaskMenu from './components/menu/TaskMenu.js'
 import { TaskStore } from './components/task/TaskStore.js'
 import { ScheduleTask } from './components/task/ScheduleTask.js'
+import { SessionList } from './components/session/SessionList.js'
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
         <Route route="new-task" component={<NewTaskMenu />} />
         <Route route="task-menu" component={<TaskMenu />} />
         <Route route="all-tasks" component={<TaskList />} />
+        <Route route="all-sessions" component={<SessionList />} />
         <Route route="schedule-task" component={<ScheduleTask />} />
       </Router>
     </TaskStore>

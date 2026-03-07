@@ -12,6 +12,10 @@ const items = [
     value: 'ALL_TASKS',
   },
   {
+    label: 'Показать все сессии',
+    value: 'ALL_SESSIONS',
+  },
+  {
     label: 'Выход',
     value: 'EXIT',
   },
@@ -23,6 +27,7 @@ export function NewMainMenu() {
   function handleSelect(item: (typeof items)[number]) {
     if (item.value === 'NEW_TASK') navigate('new-task')
     if (item.value === 'ALL_TASKS') navigate('all-tasks')
+    if (item.value === 'ALL_SESSIONS') navigate('all-sessions')
     if (item.value === 'EXIT') process.exit(0)
   }
 
