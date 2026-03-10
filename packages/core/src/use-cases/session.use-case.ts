@@ -2,6 +2,7 @@ import { SessionDTO } from '../entities/session.entity.js'
 import { SessionRepository, TaskRepository, TimeBlockRepository } from '../ports/repository.port.js'
 import { TaskService } from '../services/task.service.js'
 import { TimeTrackingService } from '../services/time-tracking.service.js'
+import { SessionAction, UserActionsService } from '../services/user-actions.service.js'
 import { Result, VoidResult } from '../types.js'
 
 /**
@@ -19,6 +20,8 @@ export interface SessionDetails extends SessionDTO {
   }
   /** Total work time (in minutes) calculated from work intervals. */
   totalWorkTime: number
+  /** Ids of actions that can be performed at given session */
+  availableActionIds: SessionAction[]
 }
 
 export interface SessionWithTaskDTO extends SessionDTO {
@@ -228,12 +231,14 @@ export class FetchSessionDetailsUseCase {
    * @param taskRepository - Repository to access task data.
    * @param timeBlockRepository - Repository to find time blocks by task ID.
    * @param timeTrackingService - Service to manage time tracking sessions.
+   * @param userActionsService - Service to get session actions.
    */
   constructor(
     private readonly sessionRepository: SessionRepository,
     private readonly taskRepository: TaskRepository,
     private readonly timeBlockRepository: TimeBlockRepository,
-    private readonly timeTrackingService: TimeTrackingService
+    private readonly timeTrackingService: TimeTrackingService,
+    private readonly userActionsService: UserActionsService
   ) {}
 
   /**
@@ -282,6 +287,7 @@ export class FetchSessionDetailsUseCase {
         taskTitle,
         timeBlock: timeBlockInterval,
         totalWorkTime: this.timeTrackingService.getTotalWorkTime(session),
+        availableActionIds: this.userActionsService.getSessionActions(session),
         ...session,
       }
 

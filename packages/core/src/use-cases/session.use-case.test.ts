@@ -16,11 +16,13 @@ import {
   StartFreeSessionUseCase,
   StartTaskSessionUseCase,
 } from './session.use-case'
+import { UserActionsService } from '../services/user-actions.service'
 
 describe('Session Use Cases', () => {
   let mockTimeBlockRepository: TimeBlockRepository
   let mockTaskService: TaskService
   let mockTimeTrackingService: TimeTrackingService
+  let mockUserActionsService: UserActionsService
   let mockSessionRepository: SessionRepository
   let mockTaskRepository: TaskRepository
 
@@ -42,6 +44,10 @@ describe('Session Use Cases', () => {
       findAllSessions: vi.fn(),
       getTotalWorkTime: vi.fn(),
     } as unknown as TimeTrackingService
+
+    mockUserActionsService = {
+      getSessionActions: vi.fn(),
+    } as unknown as UserActionsService
 
     mockSessionRepository = {
       findById: vi.fn(),
@@ -145,7 +151,8 @@ describe('Session Use Cases', () => {
         mockSessionRepository,
         mockTaskRepository,
         mockTimeBlockRepository,
-        mockTimeTrackingService
+        mockTimeTrackingService,
+        mockUserActionsService
       )
     })
 
@@ -170,6 +177,7 @@ describe('Session Use Cases', () => {
       expect(mockTaskRepository.findById).toHaveBeenCalledWith('task-1')
       expect(mockTimeBlockRepository.findById).toHaveBeenCalledWith('tb-1')
       expect(mockTimeTrackingService.getTotalWorkTime).toHaveBeenCalledWith(mockSession)
+      expect(mockUserActionsService.getSessionActions).toHaveBeenCalledWith(mockSession)
     })
 
     it('should return active session details when there is no sessionId', async () => {
@@ -196,6 +204,7 @@ describe('Session Use Cases', () => {
       expect(mockTaskRepository.findById).not.toHaveBeenCalled()
       expect(mockTimeBlockRepository.findById).not.toHaveBeenCalled()
       expect(mockTimeTrackingService.getTotalWorkTime).not.toHaveBeenCalled()
+      expect(mockUserActionsService.getSessionActions).not.toHaveBeenCalled()
     })
 
     it('should handle free sessions', async () => {
