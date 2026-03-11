@@ -52,6 +52,7 @@ export type FormatedSessionDetails = SessionDetails & {
 }
 
 export type SessionListItem = {
+  id: string
   startTime: string
   endTime: string | null
   taskTitle?: string
@@ -262,9 +263,10 @@ export class CLIAdapter {
     if (!result.success) return result
 
     const formatedItems = result.value.map((item) => {
-      const { startTime, endTime, totalWorkTime, taskTitle } = item
+      const { startTime, endTime, totalWorkTime, taskTitle, id } = item
 
       return {
+        id,
         taskTitle,
         totalWorkTime,
         startTime: formatInTimeZone(startTime, this._userTimeZone, 'HH:mm'),
@@ -276,11 +278,6 @@ export class CLIAdapter {
       success: true,
       value: formatedItems,
     }
-
-    // const formatedItems = {
-    //   startTime: formatInTimeZone(startTime, this._userTimeZone, 'HH:mm'),
-    //   endTime: endTime ? formatInTimeZone(endTime, this._userTimeZone, 'HH:mm') : null,
-    // }
   }
 
   async fetchSessionDetails(sessionId?: string): Promise<Result<FormatedSessionDetails>> {
