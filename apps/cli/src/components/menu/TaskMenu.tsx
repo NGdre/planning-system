@@ -66,6 +66,14 @@ export default function TaskMenu() {
     if (item.value === TaskAction.SCHEDULE) {
       navigate('schedule-task')
     }
+
+    if (item.value === TaskAction.START) {
+      if (selectedTaskId) {
+        const result = await cliAdapter.startTaskSession(selectedTaskId)
+
+        if (result.success) navigate('session')
+      }
+    }
   }
 
   return (
