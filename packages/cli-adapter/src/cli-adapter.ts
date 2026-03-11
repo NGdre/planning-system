@@ -288,7 +288,8 @@ export class CLIAdapter {
       this.sessionRepo,
       this.taskRepo,
       this.timeBlockRepo,
-      this.timeTrackingService
+      this.timeTrackingService,
+      this.userActionsService
     ).execute(sessionId)
 
     if (!result.success) return result
