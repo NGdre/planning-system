@@ -26,7 +26,7 @@ const items = [
   },
 ]
 
-export function NewMainMenu() {
+export function MainMenu() {
   const { navigate } = useRouter()
 
   async function handleSelect(item: (typeof items)[number]) {
