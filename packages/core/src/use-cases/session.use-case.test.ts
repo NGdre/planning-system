@@ -51,7 +51,7 @@ describe('Session Use Cases', () => {
 
     mockSessionRepository = {
       findById: vi.fn(),
-      findActive: vi.fn(),
+      findLast: vi.fn(),
     } as unknown as SessionRepository
     mockTaskRepository = { findById: vi.fn() } as unknown as TaskRepository
   })
@@ -181,7 +181,7 @@ describe('Session Use Cases', () => {
     })
 
     it('should return active session details when there is no sessionId', async () => {
-      vi.mocked(mockSessionRepository.findActive).mockResolvedValue(mockSession)
+      vi.mocked(mockSessionRepository.findLast).mockResolvedValue(mockSession)
 
       const result = await useCase.execute()
 
@@ -189,7 +189,7 @@ describe('Session Use Cases', () => {
 
       const value = (result as { success: true; value: SessionDetails }).value
       expect(value).toMatchObject(mockSession)
-      expect(mockSessionRepository.findActive).toHaveBeenCalledOnce()
+      expect(mockSessionRepository.findLast).toHaveBeenCalledOnce()
     })
 
     it('should return error when session is not found', async () => {

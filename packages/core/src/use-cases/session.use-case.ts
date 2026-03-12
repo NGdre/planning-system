@@ -254,7 +254,7 @@ export class FetchSessionDetailsUseCase {
 
       if (sessionId) session = await this.sessionRepository.findById(sessionId)
       else {
-        session = await this.sessionRepository.findActive()
+        session = await this.sessionRepository.findLast()
       }
 
       if (!session)

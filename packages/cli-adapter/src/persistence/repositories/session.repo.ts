@@ -99,6 +99,18 @@ export class KnexSessionRepository implements SessionRepository {
     }
   }
 
+  async findLast(): Promise<SessionDTO | null> {
+    const sessionRow = await this.db('session').orderBy('startTime', 'desc').first()
+    if (!sessionRow) return null
+
+    const intervalRows = await this.findAllIntervals(sessionRow.id)
+
+    return {
+      ...sessionRow,
+      intervals: intervalRows,
+    }
+  }
+
   async findById(id: string): Promise<SessionDTO | null> {
     const sessionRow = await this.db('session').where('id', id).first()
     if (!sessionRow) return null

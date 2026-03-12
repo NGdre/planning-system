@@ -26,6 +26,7 @@ export interface SessionRepository {
   findByTaskId(taskId: string): Promise<SessionDTO | null>
   findByTimeBlockId(timeBlockId: string): Promise<SessionDTO | null>
   findActive(): Promise<SessionDTO | null>
+  findLast(): Promise<SessionDTO | null>
 }
 
 export interface Repository {
