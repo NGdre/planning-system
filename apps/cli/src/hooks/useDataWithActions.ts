@@ -47,15 +47,12 @@ export function useDataWithActions<T extends { availableActionIds: string[] }>({
       if (result.success) {
         setData(result.value)
       } else {
-        const errorObj = new Error(result.error)
-        setError(errorObj)
-        throw errorObj
+        setError(new Error(result.error))
       }
     } catch (err) {
       if (mountedRef.current) {
         setError(err instanceof Error ? err : new Error(String(err)))
       }
-      throw err
     }
   }, [fetchData])
 
@@ -78,13 +75,14 @@ export function useDataWithActions<T extends { availableActionIds: string[] }>({
   const performAction = useCallback(
     async (actionId: string): Promise<void> => {
       const action = actionsMapRef.current.get(actionId)
-
       if (!action) {
-        throw new Error(`Action with id "${actionId}" not found`)
+        setError(new Error(`Action with id "${actionId}" not found`))
+        return
       }
 
       if (isFetchingRef.current) {
-        throw new Error('Another request is in progress')
+        setError(new Error('Another request is in progress'))
+        return
       }
 
       isFetchingRef.current = true
@@ -93,19 +91,18 @@ export function useDataWithActions<T extends { availableActionIds: string[] }>({
 
       try {
         let rawResult = action.queryFn()
-
         if (!(rawResult instanceof Promise)) {
           rawResult = Promise.resolve(rawResult)
         }
 
         const actionResult = await rawResult
-
         if (!actionResult || typeof actionResult !== 'object' || !('success' in actionResult)) {
           throw new Error('Invalid result from action.queryFn: expected Result or VoidResult')
         }
 
         if (!actionResult.success) {
-          throw new Error(actionResult.error || 'Action failed')
+          setError(new Error(actionResult.error || 'Action failed'))
+          return
         }
 
         await fetchDataInternal()
@@ -113,7 +110,6 @@ export function useDataWithActions<T extends { availableActionIds: string[] }>({
         if (mountedRef.current) {
           setError(err instanceof Error ? err : new Error(String(err)))
         }
-        throw err
       } finally {
         if (mountedRef.current) {
           isFetchingRef.current = false
