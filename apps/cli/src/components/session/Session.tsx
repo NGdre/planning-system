@@ -51,17 +51,30 @@ export function Session({ sessionId }: SessionProps) {
   return (
     <Box flexDirection="column">
       {sessionDetails.taskTitle && <Text>Название задачи: {sessionDetails.taskTitle}</Text>}
+
       {sessionDetails.formated.timeBlock && (
-        <Text>Запланированное время: {sessionDetails.formated.timeBlock}</Text>
-      )}
-      <Text>Статус: {sessionDetails.status}</Text>
-      <Text>Начало сессии: {sessionDetails.formated.startTime}</Text>
-      <Text>Общее время работы: {sessionDetails.totalWorkTime} мин</Text>
-      {sessionDetails.formated.endTime && (
-        <Text>Конец сессии: {sessionDetails.formated.endTime}</Text>
+        <Box flexDirection="column" marginY={1}>
+          {sessionDetails.formated.scheduledDay && (
+            <Text>Запланированный день: {sessionDetails.formated.scheduledDay}</Text>
+          )}
+
+          <Text>Запланированное время: {sessionDetails.formated.timeBlock}</Text>
+        </Box>
       )}
 
-      <Box flexDirection="column" marginTop={1} marginBottom={1}>
+      <Text>Статус: {sessionDetails.status}</Text>
+
+      <Box flexDirection="column" marginY={1}>
+        <Text>{sessionDetails.formated.startDay}</Text>
+        <Text>Начало сессии: {sessionDetails.formated.startTime}</Text>
+        {sessionDetails.formated.endTime && (
+          <Text>Конец сессии: {sessionDetails.formated.endTime}</Text>
+        )}
+      </Box>
+
+      <Text>Общее время работы: {sessionDetails.totalWorkTime} мин</Text>
+
+      <Box flexDirection="column" marginY={1}>
         <Text>Рабочие интервалы:</Text>
 
         {sessionDetails.formated.intervals.map((interval) => (

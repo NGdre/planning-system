@@ -45,7 +45,9 @@ export type FormatedSessionDetails = SessionDetails & {
   formated: {
     startTime: string
     endTime: string | null
+    startDay: string
     timeBlock: string | null
+    scheduledDay: string | null
     intervals: string[]
     lastWorkIntervalStart: string
   }
@@ -313,9 +315,17 @@ export class CLIAdapter {
 
     const formated = {
       startTime: formatInTimeZone(startTime, this._userTimeZone, 'HH:mm'),
+      startDay: formatInTimeZone(startTime, this._userTimeZone, 'dd MMMM yyyy', {
+        locale: ru,
+      }),
       endTime: endTime ? formatInTimeZone(endTime, this._userTimeZone, 'HH:mm') : null,
       timeBlock: timeBlock
         ? this.formatTimeBlock(new Date(timeBlock.startTime), new Date(timeBlock.endTime))
+        : null,
+      scheduledDay: timeBlock
+        ? formatInTimeZone(new Date(timeBlock.startTime), this._userTimeZone, 'dd MMMM yyyy', {
+            locale: ru,
+          })
         : null,
       intervals: formatedIntervals,
       lastWorkIntervalStart,
