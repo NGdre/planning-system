@@ -1,7 +1,7 @@
 import SelectInput from 'ink-select-input'
 import { Text } from 'ink'
-import { useRouter } from '../router/Router.js'
 import { cliAdapter } from '../../cli.js'
+import { useNavigation } from '../navigation/NavigationContext.js'
 
 const items = [
   {
@@ -27,16 +27,16 @@ const items = [
 ]
 
 export function MainMenu() {
-  const { navigate } = useRouter()
+  const { push } = useNavigation()
 
   async function handleSelect(item: (typeof items)[number]) {
-    if (item.value === 'NEW_TASK') navigate('new-task')
-    if (item.value === 'ALL_TASKS') navigate('all-tasks')
-    if (item.value === 'ALL_SESSIONS') navigate('all-sessions')
+    if (item.value === 'NEW_TASK') push({ name: 'NewTaskMenu' })
+    if (item.value === 'ALL_TASKS') push({ name: 'TaskList' })
+    if (item.value === 'ALL_SESSIONS') push({ name: 'SessionList' })
     if (item.value === 'FREE_SESSION') {
       const result = await cliAdapter.startFreeSession()
 
-      if (result.success) navigate('session')
+      if (result.success) push({ name: 'Session', params: {} })
     }
     if (item.value === 'EXIT') process.exit(0)
   }

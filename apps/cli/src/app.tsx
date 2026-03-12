@@ -1,25 +1,13 @@
-import { Router, Route } from './components/router/Router.js'
-import { MainMenu } from './components/menu/MainMenu.js'
-import NewTaskMenu from './components/menu/NewTaskMenu.js'
-import { TaskList } from './components/task/TaskList.js'
-import TaskMenu from './components/menu/TaskMenu.js'
+import { NavigationProvider } from './components/navigation/NavigationContext.js'
+import { ScreenRenderer } from './components/navigation/ScreenRenderer.js'
 import { TaskStore } from './components/task/TaskStore.js'
-import { ScheduleTask } from './components/task/ScheduleTask.js'
-import { SessionList } from './components/session/SessionList.js'
-import { Session } from './components/session/Session.js'
 
 export default function App() {
   return (
     <TaskStore>
-      <Router initialRoute="main">
-        <Route route="main" component={<MainMenu />} />
-        <Route route="new-task" component={<NewTaskMenu />} />
-        <Route route="task-menu" component={<TaskMenu />} />
-        <Route route="all-tasks" component={<TaskList />} />
-        <Route route="all-sessions" component={<SessionList />} />
-        <Route route="session" component={<Session />} />
-        <Route route="schedule-task" component={<ScheduleTask />} />
-      </Router>
+      <NavigationProvider>
+        <ScreenRenderer />
+      </NavigationProvider>
     </TaskStore>
   )
 }

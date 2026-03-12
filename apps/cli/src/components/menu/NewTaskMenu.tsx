@@ -2,9 +2,9 @@ import { useRef, useState } from 'react'
 import SelectInput from 'ink-select-input'
 import { Text } from 'ink'
 import { TextInputContainer } from '../TextInputContainer.js'
-import { useRouter } from '../router/Router.js'
 import { CreateTaskInput } from '@planning-system/core'
 import { cliAdapter } from '../../cli.js'
+import { useNavigation } from '../navigation/NavigationContext.js'
 
 const newTaskMenu = [
   {
@@ -35,7 +35,7 @@ export default function NewTaskMenu() {
     textInputLabel?: string
   } | null>(null)
 
-  const { goBack } = useRouter()
+  const { pop } = useNavigation()
 
   const handleSelect = async (item: { label: string; value: string }) => {
     if (item.value === 'DONE') {
@@ -44,7 +44,7 @@ export default function NewTaskMenu() {
       }
 
       newTaskFields.current = null
-      goBack()
+      pop()
       return
     }
 

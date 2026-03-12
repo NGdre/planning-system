@@ -5,12 +5,12 @@ import { VirtualList } from '../ui/VirtualList.js'
 import { SessionRenderer } from './SessionRenderer.js'
 import { Session } from './Session.js'
 import { useInput } from 'ink'
-import { useRouter } from '../router/Router.js'
+import { useNavigation } from '../navigation/NavigationContext.js'
 
 export function SessionList() {
   const [sessionItems, setSessionItems] = useState<SessionListItem[]>([])
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
-  const { goBack } = useRouter()
+  const { pop } = useNavigation()
 
   useEffect(() => {
     const findAllTasks = async () => {
@@ -27,7 +27,7 @@ export function SessionList() {
       if (selectedSessionId) {
         setSelectedSessionId(null)
       } else {
-        goBack()
+        pop()
       }
     }
   })
@@ -51,7 +51,7 @@ export function SessionList() {
           }}
         />
       ) : (
-        <Session sessionId={selectedSessionId} />
+        <Session params={{ sessionId: selectedSessionId }} />
       )}
     </>
   )

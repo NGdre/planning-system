@@ -2,12 +2,12 @@ import { Box, Text, useInput } from 'ink'
 import SelectInput from 'ink-select-input'
 import { useState } from 'react'
 import { cliAdapter } from '../../cli.js'
-import { useRouter } from '../router/Router.js'
 import { AvailableSlots, useDayOffset } from '../time-block/AvailableSlots.js'
 import { DateTime } from '../ui/DateTime.js'
 import { ErrorMessage } from '../ui/ErrorMessage.js'
 import PromptWithHints from '../ui/PromptWithHints.js'
 import { useTaskStore } from './TaskStore.js'
+import { useNavigation } from '../navigation/NavigationContext.js'
 
 const MENU_ITEMS = [
   { value: 'PREV_DAY', label: 'Предыдущий день' },
@@ -26,11 +26,11 @@ export function ScheduleTask() {
   const [timeBlockInput, setTimeBlockInput] = useState('')
   const [activePromptType, setActivePromptType] = useState<'TIME_BLOCK' | 'MANUAL_DAY' | null>(null)
   const { dayOffset, setDayOffset } = useDayOffset()
-  const { navigate } = useRouter()
+  const { push } = useNavigation()
 
   useInput((_input, key) => {
     if (key.return && isScheduled) {
-      navigate('main')
+      push({ name: 'MainMenu' })
     }
   })
 

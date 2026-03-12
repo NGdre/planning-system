@@ -7,10 +7,10 @@ import SelectInput from 'ink-select-input'
 import { useCallback, useMemo } from 'react'
 
 export interface SessionProps {
-  sessionId?: string
+  params: { sessionId?: string }
 }
 
-export function Session({ sessionId }: SessionProps) {
+export function Session({ params }: SessionProps) {
   const allActions: Action[] = useMemo(
     () => [
       {
@@ -34,8 +34,8 @@ export function Session({ sessionId }: SessionProps) {
   )
 
   const fetchData = useCallback(async () => {
-    return await cliAdapter.fetchSessionDetails(sessionId)
-  }, [sessionId])
+    return await cliAdapter.fetchSessionDetails(params.sessionId)
+  }, [params.sessionId])
 
   const {
     data: sessionDetails,

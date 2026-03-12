@@ -1,14 +1,14 @@
 import { TaskDTO } from '@planning-system/core'
 import { useEffect, useState } from 'react'
 import { cliAdapter } from '../../cli.js'
-import { useRouter, WithNavigationKeys } from '../router/Router.js'
 import { VirtualList } from '../ui/VirtualList.js'
 import { TaskRenderer } from './TaskRenderer.js'
 import { useTaskStore } from './TaskStore.js'
+import { useNavigation, useNavigationKeys } from '../navigation/NavigationContext.js'
 
 export function TaskList() {
   const [tasks, setTasks] = useState<TaskDTO[]>([])
-  const { navigate } = useRouter()
+  const { push } = useNavigation()
   const { setSelectedTaskId } = useTaskStore()
 
   useEffect(() => {
@@ -19,22 +19,22 @@ export function TaskList() {
     findAllTasks()
   }, [])
 
+  useNavigationKeys()
+
   return (
-    <WithNavigationKeys>
-      <VirtualList
-        data={tasks}
-        renderItem={({ item, index, isSelected, isVisible }) => (
-          <TaskRenderer index={index} isSelected={isSelected} isVisible={isVisible} item={item} />
-        )}
-        additionalHints={[
-          { keys: 'b', description: 'Назад' },
-          { keys: 'm', description: 'В главное меню' },
-        ]}
-        onSelect={(item) => {
-          setSelectedTaskId(item.id)
-          navigate('task-menu')
-        }}
-      />
-    </WithNavigationKeys>
+    <VirtualList
+      data={tasks}
+      renderItem={({ item, index, isSelected, isVisible }) => (
+        <TaskRenderer index={index} isSelected={isSelected} isVisible={isVisible} item={item} />
+      )}
+      additionalHints={[
+        { keys: 'b', description: 'Назад' },
+        { keys: 'm', description: 'В главное меню' },
+      ]}
+      onSelect={(item) => {
+        setSelectedTaskId(item.id)
+        push({ name: 'TaskMenu' })
+      }}
+    />
   )
 }

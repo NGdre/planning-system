@@ -4,9 +4,9 @@ import { Box, Text } from 'ink'
 import SelectInput from 'ink-select-input'
 import { useEffect, useState } from 'react'
 import { cliAdapter } from '../../cli.js'
-import { useRouter, WithNavigationKeys } from '../router/Router.js'
 import { useTaskStore } from '../task/TaskStore.js'
 import { DateTime } from '../ui/DateTime.js'
+import { useNavigation } from '../navigation/NavigationContext.js'
 
 const selectTaskMenuItems = (taskDetails: TaskDetails | null) => {
   if (!taskDetails) return []
@@ -47,7 +47,7 @@ const selectTaskMenuItems = (taskDetails: TaskDetails | null) => {
 }
 
 export default function TaskMenu() {
-  const { navigate } = useRouter()
+  const { push } = useNavigation()
   const { selectedTaskId } = useTaskStore()
   const [taskDetails, setTaskDetails] = useState<TaskDetails | null>(null)
 
@@ -64,20 +64,20 @@ export default function TaskMenu() {
 
   const handleSelect = async (item: { label: string; value: TaskAction }) => {
     if (item.value === TaskAction.SCHEDULE) {
-      navigate('schedule-task')
+      push({ name: 'ScheduleTask' })
     }
 
     if (item.value === TaskAction.START) {
       if (selectedTaskId) {
         const result = await cliAdapter.startTaskSession(selectedTaskId)
 
-        if (result.success) navigate('session')
+        if (result.success) push({ name: 'Session', params: {} })
       }
     }
   }
 
   return (
-    <WithNavigationKeys>
+    <>
       <Box flexDirection="column" marginBottom={1}>
         <Text bold color={'blueBright'}>
           <Text color={'gray'}>Задача: </Text>
@@ -90,6 +90,6 @@ export default function TaskMenu() {
         {taskDetails?.timeBlock && <DateTime>{taskDetails.timeBlock}</DateTime>}
       </Box>
       <SelectInput items={selectTaskMenuItems(taskDetails)} onSelect={handleSelect} />
-    </WithNavigationKeys>
+    </>
   )
 }
