@@ -5,12 +5,15 @@ import { Action, useDataWithActions } from '../../hooks/useDataWithActions.js'
 import { SessionAction } from '@planning-system/core'
 import SelectInput from 'ink-select-input'
 import { useCallback, useMemo } from 'react'
+import { useNavigation } from '../navigation/NavigationContext.js'
 
 export interface SessionProps {
   params: { sessionId?: string }
 }
 
 export function Session({ params }: SessionProps) {
+  const { goHome, pop } = useNavigation()
+
   const allActions: Action[] = useMemo(
     () => [
       {
@@ -48,6 +51,18 @@ export function Session({ params }: SessionProps) {
 
   if (!sessionDetails) return null
 
+  const actionsWithNavigation = [
+    ...actions,
+    {
+      id: 'BACK',
+      label: 'Назад',
+    },
+    {
+      id: 'HOME',
+      label: 'В главное меню',
+    },
+  ]
+
   return (
     <Box flexDirection="column">
       {sessionDetails.taskTitle && <Text>Название задачи: {sessionDetails.taskTitle}</Text>}
@@ -83,8 +98,13 @@ export function Session({ params }: SessionProps) {
       </Box>
 
       <SelectInput
-        items={actions.map((item) => ({ ...item, value: item.id.toString() }))}
-        onSelect={(action) => performAction(action.value)}
+        items={actionsWithNavigation.map((item) => ({ ...item, value: item.id.toString() }))}
+        onSelect={(action) => {
+          if (action.value === 'BACK') pop()
+          if (action.value === 'HOME') goHome()
+
+          performAction(action.value)
+        }}
       />
     </Box>
   )
