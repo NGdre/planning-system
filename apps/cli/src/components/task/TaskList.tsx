@@ -23,10 +23,7 @@ export function TaskList() {
       renderItem={({ item, index, isSelected, isVisible }) => (
         <TaskRenderer index={index} isSelected={isSelected} isVisible={isVisible} item={item} />
       )}
-      additionalHints={[
-        { keys: 'b', description: 'Назад' },
-        { keys: 'm', description: 'В главное меню' },
-      ]}
+      additionalHints={[{ keys: 'm', description: 'В главное меню' }]}
       onSelect={(task) => {
         push({ name: 'TaskMenu', params: { taskId: task.id } })
       }}

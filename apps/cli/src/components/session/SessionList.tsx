@@ -25,10 +25,7 @@ export function SessionList() {
       renderItem={({ item, index, isSelected, isVisible }) => (
         <SessionRenderer index={index} isSelected={isSelected} isVisible={isVisible} item={item} />
       )}
-      additionalHints={[
-        { keys: 'b', description: 'Назад' },
-        { keys: 'm', description: 'В главное меню' },
-      ]}
+      additionalHints={[{ keys: 'm', description: 'В главное меню' }]}
       onSelect={(session) => {
         push({ name: 'Session', params: { sessionId: session.id } })
       }}

@@ -8,11 +8,13 @@ import { useCallback, useMemo } from 'react'
 import { useNavigation } from '../navigation/NavigationContext.js'
 
 export interface SessionProps {
-  params: { sessionId?: string }
+  params: { sessionId?: string; allowBack?: boolean }
 }
 
 export function Session({ params }: SessionProps) {
   const { goHome, pop } = useNavigation()
+
+  const { allowBack = true } = params
 
   const allActions: Action[] = useMemo(
     () => [
@@ -53,10 +55,14 @@ export function Session({ params }: SessionProps) {
 
   const actionsWithNavigation = [
     ...actions,
-    {
-      id: 'BACK',
-      label: 'Назад',
-    },
+    ...(allowBack
+      ? [
+          {
+            id: 'BACK',
+            label: 'Назад',
+          },
+        ]
+      : []),
     {
       id: 'HOME',
       label: 'В главное меню',

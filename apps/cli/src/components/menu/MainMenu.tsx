@@ -36,7 +36,7 @@ export function MainMenu() {
     if (item.value === 'FREE_SESSION') {
       const result = await cliAdapter.startFreeSession()
 
-      if (result.success) push({ name: 'Session', params: {} })
+      if (result.success) push({ name: 'Session', params: { allowBack: false } })
     }
     if (item.value === 'EXIT') process.exit(0)
   }

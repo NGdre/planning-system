@@ -18,7 +18,7 @@ export type ScreenName =
   | 'MainMenu'
 
 export type ScreenParamsMap = {
-  Session: { sessionId?: string }
+  Session: { sessionId?: string; allowBack?: boolean }
   TaskMenu: { taskId: string; allowBack?: boolean }
   ScheduleTask: { taskId: string }
 }
