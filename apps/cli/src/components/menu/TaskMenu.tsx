@@ -52,6 +52,7 @@ export interface TaskProps {
 export default function TaskMenu({ params }: TaskProps) {
   const { push } = useNavigation()
   const [taskDetails, setTaskDetails] = useState<TaskDetails | null>(null)
+  const { goHome, pop } = useNavigation()
 
   const { taskId } = params
 
@@ -66,7 +67,7 @@ export default function TaskMenu({ params }: TaskProps) {
     fetchTaskDetails()
   }, [taskId])
 
-  const handleSelect = async (item: { label: string; value: TaskAction }) => {
+  const handleSelect = async (item: { label: string; value: string }) => {
     if (item.value === TaskAction.SCHEDULE) {
       push({ name: 'ScheduleTask', params: { taskId } })
     }
@@ -78,7 +79,22 @@ export default function TaskMenu({ params }: TaskProps) {
         if (result.success) push({ name: 'Session', params: {} })
       }
     }
+
+    if (item.value === 'BACK') pop()
+    if (item.value === 'HOME') goHome()
   }
+
+  const actions = [
+    ...selectTaskMenuItems(taskDetails),
+    {
+      value: 'BACK',
+      label: 'Назад',
+    },
+    {
+      value: 'HOME',
+      label: 'В главное меню',
+    },
+  ]
 
   return (
     <>
@@ -93,7 +109,7 @@ export default function TaskMenu({ params }: TaskProps) {
         {taskDetails?.day && <DateTime>{taskDetails.day}</DateTime>}
         {taskDetails?.timeBlock && <DateTime>{taskDetails.timeBlock}</DateTime>}
       </Box>
-      <SelectInput items={selectTaskMenuItems(taskDetails)} onSelect={handleSelect} />
+      <SelectInput items={actions} onSelect={handleSelect} />
     </>
   )
 }
