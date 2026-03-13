@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { cliAdapter } from '../../cli.js'
 import { VirtualList } from '../ui/VirtualList.js'
 import { TaskRenderer } from './TaskRenderer.js'
-import { useNavigation, useNavigationKeys } from '../navigation/NavigationContext.js'
+import { useNavigation } from '../navigation/NavigationContext.js'
 
 export function TaskList() {
   const [tasks, setTasks] = useState<TaskDTO[]>([])
@@ -16,8 +16,6 @@ export function TaskList() {
 
     findAllTasks()
   }, [])
-
-  useNavigationKeys()
 
   return (
     <VirtualList

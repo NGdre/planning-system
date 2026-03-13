@@ -1,4 +1,3 @@
-import { useInput } from 'ink'
 import { createContext, useContext, useState, ReactNode } from 'react'
 import { Screen } from './ScreenRenderer.js'
 
@@ -34,17 +33,4 @@ export const useNavigation = () => {
   const ctx = useContext(NavigationContext)
   if (!ctx) throw new Error('useNavigation must be used within NavigationProvider')
   return ctx
-}
-
-export function useNavigationKeys() {
-  const { pop, goHome } = useNavigation()
-
-  useInput((input, key) => {
-    if (input === 'b' || key.escape) {
-      pop()
-    }
-    if (input === 'm') {
-      goHome()
-    }
-  })
 }

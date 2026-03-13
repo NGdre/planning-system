@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { cliAdapter } from '../../cli.js'
 import { VirtualList } from '../ui/VirtualList.js'
 import { SessionRenderer } from './SessionRenderer.js'
-import { useNavigation, useNavigationKeys } from '../navigation/NavigationContext.js'
+import { useNavigation } from '../navigation/NavigationContext.js'
 
 export function SessionList() {
   const [sessionItems, setSessionItems] = useState<SessionListItem[]>([])
@@ -18,8 +18,6 @@ export function SessionList() {
 
     findAllTasks()
   }, [])
-
-  useNavigationKeys()
 
   return (
     <VirtualList
