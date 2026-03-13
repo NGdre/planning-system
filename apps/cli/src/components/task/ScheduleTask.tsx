@@ -33,7 +33,7 @@ export function ScheduleTask({ params }: ScheduleTaskProps) {
 
   useInput((_input, key) => {
     if (key.return && isScheduled) {
-      push({ name: 'TaskMenu', params: { taskId } })
+      push({ name: 'TaskMenu', params: { taskId, allowBack: false } })
     }
   })
 

@@ -42,7 +42,7 @@ export default function NewTaskMenu() {
       if (newTaskFields.current) {
         const task = await cliAdapter.createTask(newTaskFields.current)
 
-        if (task?.id) push({ name: 'TaskMenu', params: { taskId: task.id } })
+        if (task?.id) push({ name: 'TaskMenu', params: { taskId: task.id, allowBack: false } })
 
         newTaskFields.current = null
       }

@@ -46,7 +46,7 @@ const selectTaskMenuItems = (taskDetails: TaskDetails | null) => {
 }
 
 export interface TaskProps {
-  params: { taskId: string }
+  params: { taskId: string; allowBack?: boolean }
 }
 
 export default function TaskMenu({ params }: TaskProps) {
@@ -54,7 +54,7 @@ export default function TaskMenu({ params }: TaskProps) {
   const [taskDetails, setTaskDetails] = useState<TaskDetails | null>(null)
   const { goHome, pop } = useNavigation()
 
-  const { taskId } = params
+  const { taskId, allowBack = true } = params
 
   useEffect(() => {
     const fetchTaskDetails = async () => {
@@ -86,10 +86,7 @@ export default function TaskMenu({ params }: TaskProps) {
 
   const actions = [
     ...selectTaskMenuItems(taskDetails),
-    {
-      value: 'BACK',
-      label: 'Назад',
-    },
+    ...(allowBack ? [{ value: 'BACK', label: 'Назад' }] : []),
     {
       value: 'HOME',
       label: 'В главное меню',
