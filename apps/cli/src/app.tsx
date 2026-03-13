@@ -5,8 +5,8 @@ import { ScreenRenderer } from './components/navigation/ScreenRenderer.js'
 export default function App() {
   return (
     <NavigationProvider>
-      <NavigationKeysHandler />
       <ScreenRenderer />
+      <NavigationKeysHandler />
     </NavigationProvider>
   )
 }
