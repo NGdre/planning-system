@@ -4,7 +4,6 @@ import { Box, Text } from 'ink'
 import SelectInput from 'ink-select-input'
 import { useEffect, useState } from 'react'
 import { cliAdapter } from '../../cli.js'
-import { useTaskStore } from '../task/TaskStore.js'
 import { DateTime } from '../ui/DateTime.js'
 import { useNavigation } from '../navigation/NavigationContext.js'
 
@@ -46,30 +45,35 @@ const selectTaskMenuItems = (taskDetails: TaskDetails | null) => {
   return allTaskMenuItems.filter((item) => availableActions.includes(item.value))
 }
 
-export default function TaskMenu() {
+export interface TaskProps {
+  params: { taskId: string }
+}
+
+export default function TaskMenu({ params }: TaskProps) {
   const { push } = useNavigation()
-  const { selectedTaskId } = useTaskStore()
   const [taskDetails, setTaskDetails] = useState<TaskDetails | null>(null)
+
+  const { taskId } = params
 
   useEffect(() => {
     const fetchTaskDetails = async () => {
-      if (selectedTaskId !== null) {
-        const result = await cliAdapter.getSpecificTask(selectedTaskId)
+      if (taskId !== null) {
+        const result = await cliAdapter.getSpecificTask(taskId)
         if (result.success) setTaskDetails(result.value)
       }
     }
 
     fetchTaskDetails()
-  }, [selectedTaskId])
+  }, [taskId])
 
   const handleSelect = async (item: { label: string; value: TaskAction }) => {
     if (item.value === TaskAction.SCHEDULE) {
-      push({ name: 'ScheduleTask' })
+      push({ name: 'ScheduleTask', params: { taskId } })
     }
 
     if (item.value === TaskAction.START) {
-      if (selectedTaskId) {
-        const result = await cliAdapter.startTaskSession(selectedTaskId)
+      if (taskId) {
+        const result = await cliAdapter.startTaskSession(taskId)
 
         if (result.success) push({ name: 'Session', params: {} })
       }

@@ -19,6 +19,8 @@ export type ScreenName =
 
 export type ScreenParamsMap = {
   Session: { sessionId?: string }
+  TaskMenu: { taskId: string }
+  ScheduleTask: { taskId: string }
 }
 
 export type Screen = {
@@ -42,7 +44,7 @@ export const ScreenRenderer = () => {
       return <SessionList />
 
     case 'TaskMenu':
-      return <TaskMenu />
+      return <TaskMenu params={currentScreen.params} />
 
     case 'NewTaskMenu':
       return <NewTaskMenu />
@@ -51,7 +53,7 @@ export const ScreenRenderer = () => {
       return <TaskList />
 
     case 'ScheduleTask':
-      return <ScheduleTask />
+      return <ScheduleTask params={currentScreen.params} />
 
     case 'Session':
       return <Session params={currentScreen.params} />

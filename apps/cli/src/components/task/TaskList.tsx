@@ -3,13 +3,11 @@ import { useEffect, useState } from 'react'
 import { cliAdapter } from '../../cli.js'
 import { VirtualList } from '../ui/VirtualList.js'
 import { TaskRenderer } from './TaskRenderer.js'
-import { useTaskStore } from './TaskStore.js'
 import { useNavigation, useNavigationKeys } from '../navigation/NavigationContext.js'
 
 export function TaskList() {
   const [tasks, setTasks] = useState<TaskDTO[]>([])
   const { push } = useNavigation()
-  const { setSelectedTaskId } = useTaskStore()
 
   useEffect(() => {
     const findAllTasks = async () => {
@@ -31,9 +29,8 @@ export function TaskList() {
         { keys: 'b', description: 'Назад' },
         { keys: 'm', description: 'В главное меню' },
       ]}
-      onSelect={(item) => {
-        setSelectedTaskId(item.id)
-        push({ name: 'TaskMenu' })
+      onSelect={(task) => {
+        push({ name: 'TaskMenu', params: { taskId: task.id } })
       }}
     />
   )

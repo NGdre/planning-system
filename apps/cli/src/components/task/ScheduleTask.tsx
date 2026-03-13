@@ -6,7 +6,6 @@ import { AvailableSlots, useDayOffset } from '../time-block/AvailableSlots.js'
 import { DateTime } from '../ui/DateTime.js'
 import { ErrorMessage } from '../ui/ErrorMessage.js'
 import PromptWithHints from '../ui/PromptWithHints.js'
-import { useTaskStore } from './TaskStore.js'
 import { useNavigation } from '../navigation/NavigationContext.js'
 
 const MENU_ITEMS = [
@@ -17,8 +16,11 @@ const MENU_ITEMS = [
   { value: 'DONE', label: 'Готово!' },
 ]
 
-export function ScheduleTask() {
-  const { selectedTaskId } = useTaskStore()
+export interface ScheduleTaskProps {
+  params: { taskId: string }
+}
+
+export function ScheduleTask({ params }: ScheduleTaskProps) {
   const [manualDayInput, setManualDayInput] = useState('')
   const [isScheduled, setIsScheduled] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
@@ -34,11 +36,13 @@ export function ScheduleTask() {
     }
   })
 
+  const { taskId } = params
+
   const handleScheduleTask = async () => {
     const [startTime, endTime] = timeBlockInput.split('-')
-    if (!selectedTaskId) return
+    if (!taskId) return
 
-    const result = await cliAdapter.schedule(selectedTaskId, `r${dayOffset}`, startTime, endTime)
+    const result = await cliAdapter.schedule(taskId, `r${dayOffset}`, startTime, endTime)
     if (result.success) {
       setIsScheduled(true)
     } else {
