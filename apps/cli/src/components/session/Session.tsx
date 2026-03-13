@@ -1,6 +1,6 @@
 import { cliAdapter } from '../../cli.js'
 import { FormatedSessionDetails } from '@planning-system/cli-adapter'
-import { Box, Text } from 'ink'
+import { Box, Text, useInput } from 'ink'
 import { Action, useDataWithActions } from '../../hooks/useDataWithActions.js'
 import { SessionAction } from '@planning-system/core'
 import SelectInput from 'ink-select-input'
@@ -51,7 +51,10 @@ export function Session({ params }: SessionProps) {
     allActions,
   })
 
-  if (!sessionDetails) return null
+  // HACK: SelectInput for some reason loses focus on mount, but useInput fix it
+  useInput(() => {})
+
+  if (!sessionDetails) return <Text>Загрузка...</Text>
 
   const actionsWithNavigation = [
     ...actions,
