@@ -35,16 +35,18 @@ export default function NewTaskMenu() {
     textInputLabel?: string
   } | null>(null)
 
-  const { pop } = useNavigation()
+  const { push } = useNavigation()
 
   const handleSelect = async (item: { label: string; value: string }) => {
     if (item.value === 'DONE') {
       if (newTaskFields.current) {
-        await cliAdapter.createTask(newTaskFields.current)
+        const task = await cliAdapter.createTask(newTaskFields.current)
+
+        if (task?.id) push({ name: 'TaskMenu', params: { taskId: task.id } })
+
+        newTaskFields.current = null
       }
 
-      newTaskFields.current = null
-      pop()
       return
     }
 

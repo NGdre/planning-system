@@ -29,14 +29,13 @@ export function ScheduleTask({ params }: ScheduleTaskProps) {
   const [activePromptType, setActivePromptType] = useState<'TIME_BLOCK' | 'MANUAL_DAY' | null>(null)
   const { dayOffset, setDayOffset } = useDayOffset()
   const { push } = useNavigation()
+  const { taskId } = params
 
   useInput((_input, key) => {
     if (key.return && isScheduled) {
-      push({ name: 'MainMenu' })
+      push({ name: 'TaskMenu', params: { taskId } })
     }
   })
-
-  const { taskId } = params
 
   const handleScheduleTask = async () => {
     const [startTime, endTime] = timeBlockInput.split('-')
@@ -76,7 +75,7 @@ export function ScheduleTask({ params }: ScheduleTaskProps) {
     return (
       <Box flexDirection="column">
         <Text>Задача запланирована!</Text>
-        <Text>Нажмите Enter, чтобы вернуться в главное меню</Text>
+        <Text>Нажмите Enter, чтобы вернуться в к задаче</Text>
       </Box>
     )
   }
