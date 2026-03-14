@@ -4,10 +4,12 @@ import { cliAdapter } from '../../cli.js'
 import { VirtualList } from '../ui/VirtualList.js'
 import { SessionRenderer } from './SessionRenderer.js'
 import { useNavigation } from '../navigation/NavigationContext.js'
+import { usePopResult } from '../navigation/usePopResult.js'
 
 export function SessionList() {
   const [sessionItems, setSessionItems] = useState<SessionListItem[]>([])
   const { push } = useNavigation()
+  const popResult = usePopResult('SessionList')
 
   useEffect(() => {
     const findAllTasks = async () => {
@@ -29,6 +31,7 @@ export function SessionList() {
       onSelect={(session) => {
         push({ name: 'Session', params: { sessionId: session.id } })
       }}
+      initialSelectedId={popResult?.sessionId}
     />
   )
 }

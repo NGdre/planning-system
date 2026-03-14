@@ -52,7 +52,7 @@ export interface TaskProps {
 export default function TaskMenu({ params }: TaskProps) {
   const { push } = useNavigation()
   const [taskDetails, setTaskDetails] = useState<TaskDetails | null>(null)
-  const { goHome, pop } = useNavigation()
+  const { goHome, popWithResult } = useNavigation()
 
   const { taskId, allowBack = true } = params
 
@@ -80,7 +80,7 @@ export default function TaskMenu({ params }: TaskProps) {
       }
     }
 
-    if (item.value === 'BACK') pop()
+    if (item.value === 'BACK') popWithResult({ taskId })
     if (item.value === 'HOME') goHome()
   }
 

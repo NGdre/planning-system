@@ -4,10 +4,13 @@ import { cliAdapter } from '../../cli.js'
 import { VirtualList } from '../ui/VirtualList.js'
 import { TaskRenderer } from './TaskRenderer.js'
 import { useNavigation } from '../navigation/NavigationContext.js'
+import { usePopResult } from '../navigation/usePopResult.js'
 
 export function TaskList() {
   const [tasks, setTasks] = useState<TaskDTO[]>([])
   const { push } = useNavigation()
+
+  const popResult = usePopResult('TaskList')
 
   useEffect(() => {
     const findAllTasks = async () => {
@@ -27,6 +30,7 @@ export function TaskList() {
       onSelect={(task) => {
         push({ name: 'TaskMenu', params: { taskId: task.id } })
       }}
+      initialSelectedId={popResult?.taskId}
     />
   )
 }

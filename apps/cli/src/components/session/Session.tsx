@@ -12,9 +12,9 @@ export interface SessionProps {
 }
 
 export function Session({ params }: SessionProps) {
-  const { goHome, pop } = useNavigation()
+  const { goHome, popWithResult } = useNavigation()
 
-  const { allowBack = true } = params
+  const { sessionId, allowBack = true } = params
 
   const allActions: Action[] = useMemo(
     () => [
@@ -109,7 +109,7 @@ export function Session({ params }: SessionProps) {
       <SelectInput
         items={actionsWithNavigation.map((item) => ({ ...item, value: item.id.toString() }))}
         onSelect={(action) => {
-          if (action.value === 'BACK') pop()
+          if (action.value === 'BACK' && sessionId) popWithResult({ sessionId })
           if (action.value === 'HOME') goHome()
 
           performAction(action.value)
