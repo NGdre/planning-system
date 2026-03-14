@@ -37,6 +37,11 @@ export type VirtualListProps<T> = {
   /** Отступ от края терминала при autoHeight */
   terminalMargin?: number
   additionalHints?: CommandItem[]
+  /**
+   * Значение поля itemKey (например, id) для начального выбора.
+   * Если передано, имеет приоритет над initialSelectedIndex.
+   */
+  initialSelectedId?: string | number
 }
 
 export function VirtualList<T>({
@@ -48,15 +53,27 @@ export function VirtualList<T>({
   showHeader = true,
   onSelect,
   initialSelectedIndex = 0,
+  initialSelectedId,
   initialScrollOffset = 0,
   autoHeight = false,
   terminalMargin = 4,
   additionalHints = [],
 }: VirtualListProps<T>) {
   const [scrollOffset, setScrollOffset] = useState(initialScrollOffset)
-  const [selectedIndex, setSelectedIndex] = useState(
-    data.length > 0 ? Math.min(initialSelectedIndex, data.length - 1) : -1
-  )
+  // Инициализация selectedIndex с учётом initialSelectedId и initialSelectedIndex
+  const [selectedIndex, setSelectedIndex] = useState(() => {
+    if (data.length === 0) return -1
+
+    // Приоритет: сначала пытаемся найти по id
+    if (initialSelectedId !== undefined) {
+      const index = data.findIndex((item) => String(item[itemKey]) === String(initialSelectedId))
+      if (index !== -1) return index
+    }
+
+    // Если id не передан или не найден, используем initialSelectedIndex
+    return Math.min(initialSelectedIndex, data.length - 1)
+  })
+
   const containerRef = useRef(null)
   const { stdout } = useStdout()
   const [terminalHeight, setTerminalHeight] = useState(Math.max(height, 1))
@@ -78,6 +95,31 @@ export function VirtualList<T>({
       setSelectedIndex(Math.max(0, data.length - 1))
     }
   }, [data.length, selectedIndex])
+
+  useEffect(() => {
+    if (!data.length) return
+
+    if (initialSelectedId !== undefined) {
+      const index = data.findIndex((item) => String(item[itemKey]) === String(initialSelectedId))
+
+      if (index !== -1) {
+        setSelectedIndex(index)
+
+        // Корректируем scrollOffset, чтобы выбранный элемент был видим
+        if (index < scrollOffset) {
+          setScrollOffset(index)
+        } else if (index >= scrollOffset + terminalHeight) {
+          setScrollOffset(Math.max(0, index - terminalHeight + 1))
+        }
+      } else {
+        // Если элемент с таким id не найден, сбрасываем на первый.
+        setSelectedIndex(0)
+        setScrollOffset(0)
+      }
+    }
+    // Важно: не включаем scrollOffset в зависимости, чтобы избежать циклических обновлений.
+    // Мы только читаем его текущее значение для расчёта видимости.
+  }, [data, initialSelectedId, itemKey, terminalHeight])
 
   useInput((input, key) => {
     if (data.length === 0) return
