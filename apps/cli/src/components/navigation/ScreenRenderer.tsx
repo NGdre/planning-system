@@ -23,6 +23,17 @@ export type ScreenParamsMap = {
   ScheduleTask: { taskId: string }
 }
 
+export type ScreenResultMap = {
+  SessionList: { sessionId: string }
+  TaskList: { taskId: string }
+}
+
+export type ScreenWithResult = keyof ScreenResultMap
+
+export type CompleteScreenResultMap = {
+  [K in ScreenName]: K extends ScreenWithResult ? ScreenResultMap[K] : undefined
+}
+
 export type Screen = {
   [K in ScreenName]: K extends keyof ScreenParamsMap
     ? {
