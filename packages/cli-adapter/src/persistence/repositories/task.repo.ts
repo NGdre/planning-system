@@ -17,7 +17,10 @@ export class KnexTaskRepository implements TaskRepository {
 
   async findById(id: string): Promise<TaskDTO | null> {
     try {
-      const result = await this.db(this.tableName).where({ id }).first()
+      const result = await this.db(this.tableName)
+        .select('title', 'id', 'status')
+        .where({ id })
+        .first()
 
       return result || null
     } catch (error) {
@@ -28,7 +31,9 @@ export class KnexTaskRepository implements TaskRepository {
 
   async findAll(): Promise<TaskDTO[]> {
     try {
-      return await this.db(this.tableName).select('*')
+      return await this.db(this.tableName)
+        .select('title', 'id', 'status')
+        .orderBy('updatedAt', 'desc')
     } catch (error) {
       console.error('Error getting all tasks:', error)
       throw error
