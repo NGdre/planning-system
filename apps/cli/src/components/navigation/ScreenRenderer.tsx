@@ -7,6 +7,8 @@ import { SessionList } from '../session/SessionList.js'
 import { ScheduleTask } from '../task/ScheduleTask.js'
 import { TaskList } from '../task/TaskList.js'
 import { useNavigation } from './NavigationContext.js'
+import { useEffect } from 'react'
+import { useErrors } from '../error-handling/ErrorsContext.js'
 
 /**
  * Union of all screen names available in the application.
@@ -72,6 +74,12 @@ export type Screen = {
  */
 export const ScreenRenderer = () => {
   const { currentScreen } = useNavigation()
+  const { clearError } = useErrors()
+
+  useEffect(() => {
+    clearError()
+  }, [clearError, currentScreen])
+
   if (!currentScreen) return null
 
   switch (currentScreen.name) {
