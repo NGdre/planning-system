@@ -2,6 +2,7 @@ import SelectInput from 'ink-select-input'
 import { Text } from 'ink'
 import { cliAdapter } from '../../cli.js'
 import { useNavigation } from '../navigation/NavigationContext.js'
+import { useErrors } from '../error-handling/ErrorsContext.js'
 
 const items = [
   {
@@ -29,6 +30,8 @@ const items = [
 export function MainMenu() {
   const { push } = useNavigation()
 
+  const { addError } = useErrors()
+
   async function handleSelect(item: (typeof items)[number]) {
     if (item.value === 'NEW_TASK') push({ name: 'NewTaskMenu' })
     if (item.value === 'ALL_TASKS') push({ name: 'TaskList' })
@@ -37,6 +40,9 @@ export function MainMenu() {
       const result = await cliAdapter.startFreeSession()
 
       if (result.success) push({ name: 'Session', params: { allowBack: false } })
+      else {
+        addError(result.error)
+      }
     }
     if (item.value === 'EXIT') process.exit(0)
   }

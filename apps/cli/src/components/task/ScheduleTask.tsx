@@ -4,9 +4,9 @@ import { useState } from 'react'
 import { cliAdapter } from '../../cli.js'
 import { AvailableSlots, useDayOffset } from '../time-block/AvailableSlots.js'
 import { DateTime } from '../ui/DateTime.js'
-import { ErrorMessage } from '../ui/ErrorMessage.js'
 import PromptWithHints from '../ui/PromptWithHints.js'
 import { useNavigation } from '../navigation/NavigationContext.js'
+import { useErrors } from '../error-handling/ErrorsContext.js'
 
 const MENU_ITEMS = [
   { value: 'PREV_DAY', label: 'Предыдущий день' },
@@ -23,12 +23,13 @@ export interface ScheduleTaskProps {
 export function ScheduleTask({ params }: ScheduleTaskProps) {
   const [manualDayInput, setManualDayInput] = useState('')
   const [isScheduled, setIsScheduled] = useState(false)
-  const [errorMessage, setErrorMessage] = useState('')
   const [isPromptActive, setIsPromptActive] = useState(false)
   const [timeBlockInput, setTimeBlockInput] = useState('')
   const [activePromptType, setActivePromptType] = useState<'TIME_BLOCK' | 'MANUAL_DAY' | null>(null)
   const { dayOffset, setDayOffset } = useDayOffset()
   const { push } = useNavigation()
+  const { addError } = useErrors()
+
   const { taskId } = params
 
   useInput((_input, key) => {
@@ -45,7 +46,7 @@ export function ScheduleTask({ params }: ScheduleTaskProps) {
     if (result.success) {
       setIsScheduled(true)
     } else {
-      setErrorMessage(result.error)
+      addError(result.error)
     }
   }
 
@@ -95,7 +96,7 @@ export function ScheduleTask({ params }: ScheduleTaskProps) {
                 setManualDayInput('')
                 setIsPromptActive(false)
               } else {
-                setErrorMessage(parsedDay.error)
+                addError(parsedDay.error)
               }
             }}
           />
@@ -111,8 +112,6 @@ export function ScheduleTask({ params }: ScheduleTaskProps) {
             }}
           />
         )}
-
-        {errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>}
       </Box>
     )
   }
@@ -124,9 +123,8 @@ export function ScheduleTask({ params }: ScheduleTaskProps) {
           Блок времени: <DateTime>{timeBlockInput}</DateTime>
         </Text>
       )}
-      <AvailableSlots dayOffset={dayOffset} onError={setErrorMessage} />
+      <AvailableSlots dayOffset={dayOffset} onError={addError} />
       <SelectInput items={MENU_ITEMS} onSelect={handleMenuSelect} />
-      {errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>}
     </Box>
   )
 }

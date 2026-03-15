@@ -4,8 +4,9 @@ import { Box, Text, useInput } from 'ink'
 import { Action, useDataWithActions } from '../../hooks/useDataWithActions.js'
 import { SessionAction } from '@planning-system/core'
 import SelectInput from 'ink-select-input'
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { useNavigation } from '../navigation/NavigationContext.js'
+import { useErrors } from '../error-handling/ErrorsContext.js'
 
 export interface SessionProps {
   params: { sessionId?: string; allowBack?: boolean }
@@ -46,10 +47,17 @@ export function Session({ params }: SessionProps) {
     data: sessionDetails,
     actions,
     performAction,
+    error,
   } = useDataWithActions<FormatedSessionDetails>({
     fetchData,
     allActions,
   })
+
+  const { addError } = useErrors()
+
+  useEffect(() => {
+    if (error) addError(error.message)
+  }, [error, addError])
 
   // HACK: SelectInput for some reason loses focus on mount, but useInput fix it
   useInput(() => {})

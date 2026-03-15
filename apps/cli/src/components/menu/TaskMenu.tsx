@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { cliAdapter } from '../../cli.js'
 import { DateTime } from '../ui/DateTime.js'
 import { useNavigation } from '../navigation/NavigationContext.js'
+import { useErrors } from '../error-handling/ErrorsContext.js'
 
 const selectTaskMenuItems = (taskDetails: TaskDetails | null) => {
   if (!taskDetails) return []
@@ -53,6 +54,7 @@ export default function TaskMenu({ params }: TaskProps) {
   const { push } = useNavigation()
   const [taskDetails, setTaskDetails] = useState<TaskDetails | null>(null)
   const { goHome, popWithResult } = useNavigation()
+  const { addError } = useErrors()
 
   const { taskId, allowBack = true } = params
 
@@ -61,11 +63,12 @@ export default function TaskMenu({ params }: TaskProps) {
       if (taskId !== null) {
         const result = await cliAdapter.getSpecificTask(taskId)
         if (result.success) setTaskDetails(result.value)
+        else addError(result.error)
       }
     }
 
     fetchTaskDetails()
-  }, [taskId])
+  }, [taskId, addError])
 
   const handleSelect = async (item: { label: string; value: string }) => {
     if (item.value === TaskAction.SCHEDULE) {
@@ -77,6 +80,7 @@ export default function TaskMenu({ params }: TaskProps) {
         const result = await cliAdapter.startTaskSession(taskId)
 
         if (result.success) push({ name: 'Session', params: {} })
+        else addError(result.error)
       }
     }
 
